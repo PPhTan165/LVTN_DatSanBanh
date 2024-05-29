@@ -10,5 +10,7 @@ define("DB_USER", "root");
 define("DB_PASS", "");
 define('ROOT', dirname(dirname(__FILE__)));
 
-define("BASE_URL", "http://" . $_SERVER['SERVER_NAME'] ."/web_dat_san"); //dia chi website
+define("BASE_URL", "http://" . $_SERVER['SERVER_NAME'] ."/web_dat_san"); 
+
+//dia chi website
 ?>
