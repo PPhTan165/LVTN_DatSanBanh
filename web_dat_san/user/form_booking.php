@@ -123,10 +123,11 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
           $promotion_arr = array(
             ":name" => $promotion
           );
-          $promotion_result = $db->select($promotion_query, $promotion_arr)[0];
-          $promotion_id = isset($promotion_result['id']) ? $promotion_result['id'] : '';
+          $promotion_result = $db->select($promotion_query, $promotion_arr);
+          $promotion_id = isset($promotion_result[0]['id']) ? $promotion_result[0]['id'] : null;
+
           $price = $pitch_detail_result['price_per_hour'];
-          var_dump($promotion_result);
+
           if ($promotion_result) {
             if ($promotion_result['date'] >= $currenDate) {
               $discount = $price * $promotion_result['discount'] / 100;

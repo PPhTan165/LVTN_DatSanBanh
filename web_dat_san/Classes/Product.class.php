@@ -91,17 +91,18 @@ class Product extends Db
         if (isset($_GET['id']) && isset($_GET['date'])) {
             $idpitch = $_GET['id'];
             $date = $_GET['date'];
+            var_dump($currentDate);
 
-            
-            
-            
+
+
+
             $pitch_query = "SELECT pitch_detail.id as pitch_detail_id, pitch_detail.pitch_id as pitch_id, name FROM pitch_detail
                 JOIN pitch ON pitch_id = pitch.id 
                 WHERE pitch_detail.pitch_id = :id";
             $pitch_arr = array(":id" => $idpitch);
             $pitchs = $db->select($pitch_query, $pitch_arr)[0];
-           
-            
+
+
             if ($pitchs) {
 
                 echo '
@@ -122,38 +123,50 @@ class Product extends Db
 
                 $booking_query = "SELECT * FROM booking where date = :date";
                 $booking_arr = array(
-                    ":date"=>$date
+                    ":date" => $date
                 );
 
-                $booking_result = $db->select($booking_query,$booking_arr)[0];
-                var_dump($booking_result);
-                $duration_query = "SELECT * FROM duration JOIN pitch_detail pd on duration.id = pd.duration_id where pd.id = :pd_id ";
-                $duration_arr = array( 
-                ":pd_id" => $$booking_result['pitch_detail_id'],
-                );
-                $duration_result = $db->select($duration_query,$duration_arr);
+                $booking_result = $db->select($booking_query, $booking_arr);
+                $duration_query = "SELECT duration.id dur_id, start, end ,pd.id as pd_id FROM duration JOIN pitch_detail pd on duration.id = pd.duration_id ";
+                // $duration_arr = array(
+                //     ":pd_id" => $booking_result['pitch_detail_id'],
+                // );
+                $duration_result = $db->select($duration_query);
+
                 foreach ($duration_result as $duration) {
-                    var_dump($duration);
                     $start = new Datetime($duration['start']);
                     $end = new DateTime($duration['end']);
                     $start_formatted = $start->format('H:i');
                     $end_formatted = $end->format('H:i');
-                    $duration_id = $duration['duration_id'];
+                    $duration_id = $duration['dur_id'];
+                    $pd_id = $duration['pd_id'];
 
-                        //Nếu đặt rồi sẽ thành đỏ và không cho chọn 
-
-                        if ($booking_result && $duration_result) {
-                            echo '<div class="text-white bg-red-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';
-                        } else if ($currentDate > $date && $time_now > $start) {
+                    if ($booking_result == null) {
+                        if ($date <= $currentDate && $time_now > $start) {
                             echo '<div class="text-white bg-gray-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';
                         } else {
                             echo '<button type="button" class="select-button text-white bg-blue-500 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" 
-                    data-id="' . $duration_id . '" 
-                    data-start="' . $start_formatted . '" 
-                    data-end="' . $end_formatted . '">
-                    ' . $start_formatted . ' - ' . $end_formatted . '
-                    </button>';
+                            data-id="' . $duration_id . '" 
+                            data-start="' . $start_formatted . '" 
+                            data-end="' . $end_formatted . '">
+                            ' . $start_formatted . ' - ' . $end_formatted . '
+                            </button>';
                         }
+                    } else  {
+                        
+                        if ($booking_result[0]['pitch_detail_id'] == $pd_id) {
+                            echo '<div class="text-white bg-red-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';
+                        } else if ($date <= $currentDate && $time_now > $start) {
+                            echo '<div class="text-white bg-gray-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';
+                        } else {
+                            echo '<button type="button" class="select-button text-white bg-blue-500 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" 
+                            data-id="' . $duration_id . '" 
+                            data-start="' . $start_formatted . '" 
+                            data-end="' . $end_formatted . '">
+                            ' . $start_formatted . ' - ' . $end_formatted . '
+                            </button>';
+                        }
+                    }
                 }
                 echo '</div>';
                 echo '
