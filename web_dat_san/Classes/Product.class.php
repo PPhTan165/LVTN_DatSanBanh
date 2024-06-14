@@ -91,10 +91,6 @@ class Product extends Db
         if (isset($_GET['id']) && isset($_GET['date'])) {
             $idpitch = $_GET['id'];
             $date = $_GET['date'];
-            var_dump($currentDate);
-
-
-
 
             $pitch_query = "SELECT pitch_detail.id as pitch_detail_id, pitch_detail.pitch_id as pitch_id, name FROM pitch_detail
                 JOIN pitch ON pitch_id = pitch.id 
@@ -154,7 +150,7 @@ class Product extends Db
                         }
                     } else  {
                         
-                        if ($booking_result[0]['pitch_detail_id'] == $pd_id) {
+                        if ($booking_result[0]['pitch_detail_id'] == $pd_id && $booking_result[0]['status_id']==1) {
                             echo '<div class="text-white bg-red-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';
                         } else if ($date <= $currentDate && $time_now > $start) {
                             echo '<div class="text-white bg-gray-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';

@@ -1,0 +1,4 @@
+#navbar-sticky a[aria-current="page"] {
+    background-color: blue; /* Màu nền cho trạng thái đang hoạt động */
+    color: white;           /* Màu chữ cho trạng thái đang hoạt động */
+}

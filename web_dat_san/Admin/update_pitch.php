@@ -3,6 +3,7 @@ require "../config/config.php";
 require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 session_start();
+$admin = new Admin;
 ?>
 
 <!DOCTYPE html>
@@ -20,10 +21,10 @@ session_start();
     <?php require_once("../include/header_admin.php") ?>
     
         <?php
-            $admin = new Admin;
-            $admin->filterPage();
+            
+            $admin->inputPitch();
         ?>
-
+        
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
 

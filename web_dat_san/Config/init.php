@@ -4,7 +4,13 @@ require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 
 $db = new DB;
-
+$password = "admin";
+$md5 = md5($password);
+$query = "INSERT INTO user(deleted, email, password, role_id) VALUES (0,'admin@gmail.com',:password,1)";
+$params = array(
+    ":password" => $md5
+);
+$result = $db->insert($query,$params);
 for ($i = 1; $i < 19; $i++) {
     $sql = "insert into pitch_detail (duration_id, pitch_id, price_id) values (:duration, :pitch, :price)";
 
@@ -25,4 +31,5 @@ for ($i = 1; $i < 19; $i++) {
         echo "successful";
     }
 }
+
 ?>

@@ -13,17 +13,24 @@ session_start();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css//output.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
-    <title>TOTTENHAM FC</title>
+    <title>Admin</title>
 </head>
 
 <body>
     <?php require_once("../include/header_admin.php") ?>
-    
+
+    <?php
+    ?>
+
+    <div>
+        <h2 class="text-2xl font-bold mt-5 text-center">Tạo sân banh</h2>
+
         <?php
             $admin = new Admin;
-            $admin->filterPage();
+            $admin->createPitch();
         ?>
 
+    </div>
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
 

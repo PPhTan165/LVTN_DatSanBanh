@@ -12,19 +12,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $email = $_POST['email'];
         $password = $_POST['password'];
 
-        $sql = 'SELECT * FROM user JOIN customer ON user.id = customer.user_id WHERE email = :email';
+        $sql = 'SELECT * FROM user WHERE email = :email';
         $arr = array(":email" => $email);
 
         $userList = $db->select($sql, $arr);
+       
 
         if (count($userList) > 0) {
             $user = $userList[0];
             $md5 = md5($password);
-
+            $team_query = "SELECT * FROM team_detail LEFT JOIN customer on team_detail.cus_id = customer.id where user_id = :user_id";
+            $team_arr = array(
+                ":user_id" => $user['id']
+            );
+            $result_team = $db->select($team_query,$team_arr)[0];
+            
             if ($md5 == $user['password']) {
                 $_SESSION["user"] = $email;
                 $_SESSION["role"] = $user["role_id"];
-                $_SESSION['name'] = $user['name'];
+                $_SESSION['team_id'] = $result_team['team_id'];
                 switch ($user['role_id']) {
                     case '1':
                         header("location: ../admin/index.php");
@@ -60,28 +66,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-blue-200 dark:bg-gray-900">
-    <?php if ($errorMessage): ?>
-    <div id="errorModal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center hidden overflow-y-auto">
-        <div class="relative w-full max-w-md p-4">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-                <div class="p-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        Error
-                    </h3>
-                    <div class="mt-2 mb-4">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            <?php echo $errorMessage; ?>
-                        </p>
-                    </div>
-                    <div class="flex justify-end">
-                        <button id="closeModal" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Close</button>
+    <?php if ($errorMessage) : ?>
+        <div id="errorModal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center hidden overflow-y-auto">
+            <div class="relative w-full max-w-md p-4">
+                <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            Error
+                        </h3>
+                        <div class="mt-2 mb-4">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                <?php echo $errorMessage; ?>
+                            </p>
+                        </div>
+                        <div class="flex justify-end">
+                            <button id="closeModal" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Close</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     <?php endif; ?>
-    
+
     <div class="flex justify-center items-center w-80 rounded-xl p-5 h-full w-full mt-28 absolute top-0 ">
         <form class="w-96 mx-auto bg-white p-5 rounded-xl shadow-xl" action="login.php" method="POST">
             <h2 class="text-center text-2xl font-bold whitespace-normal mt-3 ">Đăng nhập</h2>
@@ -103,13 +109,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
     <script>
         // Show the modal if there is an error message
-        document.addEventListener('DOMContentLoaded', function () {
-            <?php if ($errorMessage): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if ($errorMessage) : ?>
                 var modal = document.getElementById('errorModal');
                 modal.style.display = 'flex';
 
                 var closeModal = document.getElementById('closeModal');
-                closeModal.addEventListener('click', function () {
+                closeModal.addEventListener('click', function() {
                     modal.style.display = 'none';
                 });
             <?php endif; ?>
