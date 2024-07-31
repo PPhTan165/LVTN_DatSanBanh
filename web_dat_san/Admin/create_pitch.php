@@ -19,9 +19,6 @@ session_start();
 <body>
     <?php require_once("../include/header_admin.php") ?>
 
-    <?php
-    ?>
-
     <div>
         <h2 class="text-2xl font-bold mt-5 text-center">Tạo sân banh</h2>
 

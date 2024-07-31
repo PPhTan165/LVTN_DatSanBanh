@@ -9,6 +9,7 @@ if(isset($_SESSION['user'])){
     unset($_SESSION['user']);
     unset($_SESSION['role']);
     unset($_SESSION['name']);
+    unset($_SESSION['cus_id']);
     header("Location:index.php");
 
 }

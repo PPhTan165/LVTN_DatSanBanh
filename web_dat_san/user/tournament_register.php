@@ -3,7 +3,6 @@ require "../config/config.php";
 require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 session_start();
-$admin = new Admin;
 ?>
 
 <!DOCTYPE html>
@@ -18,13 +17,22 @@ $admin = new Admin;
 </head>
 
 <body>
-    <?php require_once("../include/header_admin.php") ?>
-    
-        <?php
-            
-            $admin->updatePitch();
-        ?>
+    <?php require_once("../include/header.php") ?>
+    <div class="main p-8">
+        <h2 class="text-3xl font-bold text-center">Form đăng ký</h2>
         
+        
+
+            <?php
+            $id = $_GET['id'];
+            $tournament = new Tournament;
+            $tournament->registerTournament($id);
+            ?>
+    
+
+
+
+    </div>
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
 

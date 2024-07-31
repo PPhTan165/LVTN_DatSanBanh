@@ -14,7 +14,6 @@ class Team extends Db
 
     public function filterTeam()
     {
-        var_dump($_SESSION);
         echo '<div class="overflow-x-auto shadow-md sm:rounded-lg">
     ';
         echo '<form class="max-w-xl mx-auto flex my-10 max-h-xl" action="team.php" method="get">
@@ -97,7 +96,7 @@ class Team extends Db
                     ';
                 if (!isset($_SESSION['team_id']) && $team['quantity'] < $limit) {
                 
-                        echo '<a href="" class="text-blue-500 font-bold">Tham gia</a>';
+                        echo '<a href="register_team.php?team_id='.$team['id'].'" class="text-blue-500 font-bold">Tham gia</a>';
                     
                 } else {
                     echo '';
@@ -133,108 +132,31 @@ class Team extends Db
         }
     }
 
-    public function getTeamPersonal()
+    public function getTeamOfTournamentById($id)
     {
-        $team = $_SESSION['team_id'];
-        $db = new DB;
-        if (!$_SESSION['team_id']) {
-            echo "Bạn chưa có đội";
-            header("Location: ../user/team.php");
-            exit();
-        } else {
-
-            $td_query = "SELECT team.name team_name,customer.name cus_name,phone,captain FROM team_detail td 
-            join customer on cus_id = customer.id 
-            JOIN team on team_id = team.id
-            where team_id = :team_id";
-            $td_arr = array(
-                ":team_id" => $team
-            );
-            $td_result = $db->select($td_query, $td_arr);
-            $_SESSION['captain'] = $td_result[0]['captain'];
-            
-            echo '<table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                     <thead class="text-lg font-bold text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 ">
-                         <tr>
-                             <th scope="col" class="px-1 py-3">
-                                 ID
-                             </th>
-                             <th scope="col" class="px-1 py-3">
-                                 Tên thành viên
-                             </th>
-                             <th scope="col" class="px-1 py-3">
-                                SDT
-                             </th>
-                             <th scope="col" class="px-1 py-3">
-                                 Chức vụ
-                             </th>
-                             <th scope="col" class="px-1 py-3">
-                                 
-                             </th>
-                             
-
-                         </tr>
-                     </thead>
-                     <tbody>';
-            $index = 1;
-            foreach ($td_result as $td) {
-                echo '
-            <tr class="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700">
-                <th scope="row" class="px-1 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    ' . $index++ . '
-                </th>
-                <td class="px-1 py-4 text-lg font-medium">
-                    ' . htmlspecialchars($td['cus_name']) . '
-                </td>
-                <td class="px-1 py-4 text-lg font-medium ">
-                    ' . $td['phone'] . '
-                </td>
-                <td class="px-1 py-4 text-lg font-medium">'; 
-                if($td['captain'] == 1){
-                        echo "Đội trưởng";
-                    }else{
-                        echo "Thành viên";
-                    }
-                echo '</td>';
-                if($_SESSION['captain']==1){
-
-                    echo '<td class="px-1 py-4">';
-                    // nếu cus_id có captain == 1 thì hiện lên bảng delete còn ngược lại không hiện
-                    if($td['captain']==0){
-                        echo '<a href="delete_team.php?cus_id=" class="text-red-500 font-medium text-xl">Delete</a>';
-                    }else{
-                        echo '';
-                    }
-                    echo '</td>';
-                }
-            echo '</tr>';
-            }
-
-            echo '</tbody>
-        </table>
-        </div>
-        </div>';
-        }
+       $query = "SELECT team.id as id, team.name as t_name, customer.name as cus_name from team 
+        JOIN customer on customer.team_id = team.id
+        where tournament_id = :id";
+       $params = array(":id"=>$id);
+         $result = $this->select($query,$params);
+         if($result > 0){
+             return $result;
+         }else{
+             return false;
+         }
     }
      
-    public function roleCaptain(){
-        $captain = 1; 
-        $query = "SELECT * FROM team_detail td JOIN customer cus ON td.cus_id = cus.id where captain = :captain";
-        $params = array(":captain"=>$captain);
-        $result = $this->select($query,$captain);
+    public function createTeam(){
+        
     }
 
-    public function getCaptain(){
-        $captain = 1;
-        $query="select * from customer cus 
-                join team_detail td on cus.id = td.cus_id 
-                where td.captain = :captain and td.team_id = :team_id and cus_id = :cus_id";
-        $params = array(
-            ":captain" => $captain,
-            ":team_id"=> $_GET['team'],
-            ":cus_id" => $_SESSION['cus_id']
-        );
-        $result = $this->select($query,$params);
-        var_dump($result);
+    
+
+    public function getIdUser(){
+        $email =$_SESSION['user'];
+        $query = "SELECT customer.id FROM user join customer on user.id = customer.user_id WHERE email = :email";
+        $params = array(":email"=>$email);
+        $result = $this->select($query,$params)[0];
+        return $result;
     }
 }

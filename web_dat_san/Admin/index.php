@@ -3,6 +3,11 @@ require "../config/config.php";
 require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 session_start();
+
+if(!isset($_SESSION['role'])){
+    header("Location: ../user/login");
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -24,6 +29,7 @@ session_start();
             $admin->filterPage();
         ?>
 
+        
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
 

@@ -21,8 +21,7 @@ $admin = new Admin;
     <?php require_once("../include/header_admin.php") ?>
     
         <?php
-            
-            $admin->updatePitch();
+            $admin->updateManager();        
         ?>
         
 </body>

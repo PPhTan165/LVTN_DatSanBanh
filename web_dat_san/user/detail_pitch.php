@@ -46,12 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 
         <?php
-            // Hiển thị thông báo lỗi (nếu có)
             if (isset($error_message)) {
                 echo '<p class="text-red-500">' . $error_message . '</p>';
             }
 
-            // Gọi hàm getTime() để hiển thị form
             $pd = new Product;
             $pd->getTime();
         ?>

@@ -3,7 +3,7 @@ require "../config/config.php";
 require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 session_start();
-$admin = new Admin;
+$admin = new Manager;
 ?>
 
 <!DOCTYPE html>
@@ -18,7 +18,7 @@ $admin = new Admin;
 </head>
 
 <body>
-    <?php require_once("../include/header_admin.php") ?>
+    <?php require_once("../include/header_manager.php") ?>
     
         <?php
             

@@ -3,6 +3,9 @@ require "../config/config.php";
 require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 session_start();
+
+$user = new User;
+
 ?>
 
 <!DOCTYPE html>
@@ -18,7 +21,7 @@ session_start();
 
 <body>
     <?php require_once("../include/header.php") ?>
-    <div class="main">
+    <div class="main p-8 mt-5">
         <div class="banner flex justify-center items-center w-full">
             <img src="../img/banner.jpg" alt="logo" class="h-32">
         </div>

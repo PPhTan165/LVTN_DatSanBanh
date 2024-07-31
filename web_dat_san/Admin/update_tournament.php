@@ -19,10 +19,10 @@ $admin = new Admin;
 
 <body>
     <?php require_once("../include/header_admin.php") ?>
-    
+        <h2 class="text-center text-2xl font-bold mt-5 mb-5">Thông tin giải đấu</h2>
         <?php
             
-            $admin->updatePitch();
+            $admin->updateTournament();
         ?>
         
 </body>
