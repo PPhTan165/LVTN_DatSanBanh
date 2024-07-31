@@ -139,7 +139,7 @@ session_start();
             </form>';
             }
             ?>
-            <form action="create_match" method="post">
+            <form action="create_match?tour_id=<?= $id ?>" method="post">
                 <button type="submit" name="create" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 ms-5">
                     Create Match
                 </button>
@@ -147,26 +147,9 @@ session_start();
         </div>
 
         <?php
-        $histories = $admin->historyMatchDetail($id);
-        $tour = new Tournament;
-        $admin = new Admin;
-        $admin->historyMatchDetail(1);
-        
-        $id = $_GET['id'];
-        $infoMatch = $tour->getInfoMatchByMatchId($_GET['id']);
-        $pitch_id = $infoMatch[0]['pitch_id'];
-        $id_match = $infoMatch[0]['match_id'];
-        $start = $infoMatch[0]['start'];
 
-        //Thay đổi biến tĩnh thành động
-        $team_1 = $infoMatch[0]['t_name'];
-        $team_2= $infoMatch[1]['t_name'];
-        $score_1 = $infoMatch[0]['score'];
-        $score_2 = $infoMatch[1]['score'];
-        $team_id_1 = $infoMatch[0]['team_id'];
-        $team_id_2 = $infoMatch[1]['team_id'];
-        
-        $time = $tour->getAllDurationByPitchId($pitch_id);
+        $histories = $admin->historyMatchDetail($id);
+
         echo ' <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 overflow-x">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
@@ -176,6 +159,9 @@ session_start();
                     <th scope="col" class="px-3 py-3">
                        Đội 1 - Đội 2
                     </th>
+                    <th scope="col" class="px-3 py-3">
+                       Sân thi đấu
+                    </th>
                     
                     <th scope="col" class="px-1 py-3">
                        Giờ thi đấu
@@ -184,7 +170,7 @@ session_start();
                        Ngày thi đấu
                     </th>
                     <th scope="col" class="px-1 py-3">
-                        Kết quả
+                        Kết quả thắng cuộc
                     </th>
                     <th scope="col" class="px-1 py-3">
                        Trạng thái
@@ -204,6 +190,38 @@ session_start();
             $currentDate = date('Y-m-d');
             $index = 1;
             foreach ($histories as $match_detail) {
+                $j = 0;
+
+                $infoMatch = $tour->getInfoMatchByMatchId($match_detail['id']);
+                $count = count($infoMatch);
+
+                //Kiểm tra nếu team trúng thăm trắng
+                if ($count == 1) {
+                    $infoMatch[] = array(
+                        "pitch_id" => '',
+                        "match_id" => '',
+                        "start" => '',
+                        "t_name" => '',
+                        "score" => 0,
+                        "team_id" => '',
+
+                    );
+                }
+
+                $pitch_id = $infoMatch[$j]['pitch_id'];
+                $id_match = $infoMatch[$j]['match_id'];
+                $start = $infoMatch[$j]['start'];
+                //Thay đổi biến tĩnh thành động
+
+                $team_1 = $infoMatch[$j]['t_name'];
+                $team_2 = $infoMatch[$j + 1]['t_name'];
+                $score_1 = $infoMatch[$j]['score'];
+                $score_2 = $infoMatch[$j + 1]['score'];
+                $team_id_1 = $infoMatch[$j]['team_id'];
+                $team_id_2 = $infoMatch[$j + 1]['team_id'];
+                $time = $tour->getAllDurationByPitchId($pitch_id);
+                $pitch = $tour->getAllPitch();
+                $winner = $tour->getTeamWinById($id_match);
                 echo '<tr>
                 <td class="px-6 py-4">
                    ' . $index++ . '
@@ -213,31 +231,36 @@ session_start();
                    ' . $match_detail['name'] . '
                 </td>
                         
-                
+                <td class="px-3 py-4  text-base">
+                   ' . $match_detail['p_name'] . '
+                </td>
+                  
                         
-                <td class="px-1 py-4">
+                <td class="px-1 py-4 text-base">
                    <input type="text" id="time" name="time" aria-label="disabled input" class=" mb-5 bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-52 p-2.5 cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500" value="' . $match_detail['start'] . '" disabled/>
                 </td>
 
-                <td class="px-6 py-4">
+                <td class="px-6 py-4 text-base">
                    ' . $match_detail['date'] . '
+                </td>
+
+                <td class="px-6 py-4 font-bold text-base text-red-500">
+                ' . $winner . ' 
                 </td>
 
                 <td class="px-1 py-4">
                    ';
-                if ($currentDate > $match_detail['date']) {
-                    echo '<div class="text-sm font-semibold text-red-500">Kết thúc</div>';
+                if ($currentDate > $match_detail['date'] && $winner != '') {
+                    echo '<div class="text-base font-bold text-red-700">Kết thúc</div>';
                 } else if ($currentDate < $match_detail['date']) {
-                    echo '<div class="text-sm font-semibold text-blue-500">Chưa bắt đầu</div>';
+                    echo '<div class="text-base font-bold text-blue-500">Chưa bắt đầu</div>';
                 } else {
-                    echo '<div class="text-sm font-semibold text-green-500">Đang diễn ra</div>';
+                    echo '<div class="text-base font-bold text-green-500">Đang diễn ra</div>';
                 }
                 echo '
                 </td>
             
-                <td class="px-6 py-4">
-                ' . $match_detail['date'] . '
-                </td>
+                
 
                 <td class="px-1 py-4">
                     <button onclick="toggleDetail(' . $index . ')" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Chi tiết</button>
@@ -247,27 +270,28 @@ session_start();
             <tr id="detail-' . $index . '" style="display: none;">
                     <td colspan="7">
                         <div class="flex justify-center items-center">
-                            <form action="update_match.php?tour_id='.$_GET['id'].'&match_id='.$id_match.'&pitch_id='.$pitch_id.'" method="post">
-                                <div class="flex justify-center items-center gap-5">
-                                    <div>
-                                        <input type="hidden" name="team_1" value="'.$team_id_1.'"/> 
-                                        <input type="hidden" name="team_2" value="'.$team_id_2.'"/> 
-                                    </div>
+                            <form action="update_match.php?tour_id=' . $_GET['id'] . '&match_id=' . $id_match . '" method="post">
+                                <div>
+                                    <input type="hidden" name="team_1" value="' . $team_id_1 . '"/> 
+                                    <input type="hidden" name="team_2" value="' . $team_id_2 . '"/> 
+                                </div>
+                                <div class="flex items-center gap-5">
+
                                     <div class="mb-5">
                                         <label for="team_1" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Đội 1</label>
-                                        <input type="text" id="team_1" value="'.$team_1.'" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-60 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                        <input type="text" id="team_1" value="' . $team_1 . '" aria-label="disabled input" disabled class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     </div>
                                     <div class="mb-5">
                                         <label for="score" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white text-center">Tỷ số</label>
                                         <div class="flex justify-center gap-5 items-center">
-                                            <input type="text" id="score" name="score_1" value="' . $score_1 . '" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                            <input type="text" id="score" name="score_1" value="' . $score_1 . '" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                             -
-                                            <input type="text" id="score" name="score_2" value="' . $score_2 . '" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                            <input type="text" id="score" name="score_2" value="' . $score_2 . '" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                         </div>
                                     </div>
                                     <div class="mb-5">
-                                        <label for="team_2" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Đội 2</label>
-                                        <input type="text" id="team_2"  value="'.$team_2.'" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-60 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                        <label for="team_2" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white text-right">Đội 2</label>
+                                        <input type="text" id="team_2"  value="' . $team_2 . '" aria-label="disabled input" disabled class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     </div>
                                 </div>
                                 <div class="mb-5">
@@ -278,11 +302,22 @@ session_start();
                                     <div class="mb-5">
                                         <label for="time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn giờ muốn thi đấu</label>
                                         <select id="time" name="time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                                            <option selected value="'.$infoMatch[0]['d_id'].'">'.$infoMatch[0]['start'].'</option>';
-                                            foreach ($time as $value) {
-                                                echo '<option value="'.$value['d_id'].'">' .$value['start'].'</option>';
-                                            }
-                                            echo '
+                                            <option selected value="' . $infoMatch[0]['d_id'] . '">' . $infoMatch[0]['start'] . '</option>';
+                                             foreach ($time as $value) {
+                                                 echo '<option value="' . $value['d_id'] . '">' . $value['start'] . '</option>';
+                                             }
+                                    echo '
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-5">
+                                        <label for="pitch" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn sân muốn thi đấu</label>
+                                        <select id="pitch" name="pitch" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                            <option selected value="' . $infoMatch[0]['pitch_id'] . '">' . $infoMatch[0]['pitch_name'] . '</option>';
+                                             foreach ($pitch as $value) {
+                                                 echo '<option value="' . $value['id'] . '">' . $value['name'] . '</option>';
+                                             }
+                                    echo '
                                         </select>
                                     </div>
                                 </div>
@@ -295,13 +330,14 @@ session_start();
                 </tr>
                 
                ';
+                $j += 2;
             }
         }
 
         echo ' </tbody>
             </table>';
         ?>
-
+        
     </div>
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
@@ -315,4 +351,5 @@ session_start();
         }
     }
 </script>
+
 </html>

@@ -86,7 +86,7 @@ spl_autoload_register("loadClass");
     }
 
     ?>
-    <div class="flex justify-center items-center w-96 rounded-xl p-5 h-full w-full mt-28 absolute top-0 ">
+    <div class="flex justify-center items-center w-96 rounded-xl p-5 h-full mt-28 absolute top-0 ">
         <form class="w-96 mx-auto bg-white p-5 rounded-xl shadow-xl" action="create_manager.php" method="POST">
             <h2 class="text-center text-2xl font-bold whitespace-normal mt-3 ">Đăng ký</h2>
             <div class="mb-5">

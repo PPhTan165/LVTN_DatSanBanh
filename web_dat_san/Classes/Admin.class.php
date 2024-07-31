@@ -1119,8 +1119,9 @@ class Admin extends DB
 
     public function historyMatchDetail($id)
     {
-        $query = 'SELECT DISTINCT m.id, m.name, m.date, d.start FROM `match` m
+        $query = 'SELECT DISTINCT m.id, m.name, m.date, d.start, p.name as p_name FROM `match` m
                         JOIN pitch_detail pd ON m.pitch_detail_id = pd.id
+                        JOIN pitch p ON pd.pitch_id = p.id
                         JOIN duration d on pd.duration_id = d.id 
                         WHERE tournament_id = :tour_id';
         $params = array(

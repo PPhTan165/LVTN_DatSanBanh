@@ -29,6 +29,17 @@ class tournament extends DB
         }
     }
 
+    public function getAllPitch(){
+        $query = "SELECT * from pitch where deleted = 0";
+        
+        $result = $this->select($query);
+        if($result){
+            return $result;
+        }else{
+            return false;
+        }
+    }
+
     public function getInfoTournament($id_tournament)
     {
         $query = "SELECT * FROM tournament WHERE id = :id";
@@ -43,7 +54,7 @@ class tournament extends DB
         }
     }
 
-    public function getTeamWin($id){
+    public function getTeamWinById($id){
         $query = 'SELECT * FROM `match` m 
         JOIN match_detail md ON md.match_id = m.id
         JOIN team t ON md.team_id = t.id
@@ -53,14 +64,14 @@ class tournament extends DB
         );
         $result = $this->select($query, $params);
         if($result){
-            return $result;
+            return $result[0]['name'];
         }else{
             return false;
         } 
     }
 
     public function getInfoMatchByMatchId($id){
-        $query = "SELECT md.id, score, team_id, match_id, isWinner, m.name as m_name, m.date, t.name as t_name, pd.id as pd_id, p.id as pitch_id, d.id as d_id, d.start FROM match_detail md 
+        $query = "SELECT md.id, score, team_id, match_id, isWinner, m.name as m_name, m.date, t.name as t_name, pd.id as pd_id, p.id as pitch_id, p.name as pitch_name, d.id as d_id, d.start FROM match_detail md 
         JOIN `match` m ON md.match_id = m.id
         JOIN team t ON md.team_id = t.id
         JOIN pitch_detail pd ON m.pitch_detail_id = pd.id
