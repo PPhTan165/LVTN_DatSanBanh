@@ -134,7 +134,7 @@ class Team extends Db
 
     public function getTeamOfTournamentById($id)
     {
-       $query = "SELECT team.id as id, team.name as t_name, customer.name as cus_name from team 
+       $query = "SELECT team.id as id, team.name as t_name, customer.name as cus_name, customer.phone from team 
         JOIN customer on customer.team_id = team.id
         where tournament_id = :id";
        $params = array(":id"=>$id);

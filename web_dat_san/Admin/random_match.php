@@ -15,8 +15,10 @@ session_start();
         ":tour_id" => $tour_id
     );
     $teams = $db->select($query, $params);
-    if (count($teams)<2) {
-        echo "<script>alert('Số lượng đội bóng ít nhất là 4 đội')</script>";
+    if (count($teams)<4) {
+        echo "<script>alert('Số lượng đội bóng ít nhất là 4 đội')
+        window.location.href = 'detail_tournament.php?id=$tour_id';
+        </script>";
         return;
     } else {
 
@@ -29,8 +31,8 @@ session_start();
             );
         }
     
+        //Tạo một đội giả nếu số lượng đội lẻ
         $teams_lenght = count($teams_arr);
-    
         if ($teams_lenght % 2 != 0) {
             $teams_arr[] = array(
                 "id" => '',

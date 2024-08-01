@@ -41,20 +41,18 @@ session_start();
 
         ?>
         <div class="info-tour w-96 ms-5 sm:rounded-lg shadow-md p-4">
-            <h2 class="text-xl font-bold mb-5">Thông tin giải đấu</h2>
+            <h2 class="text-xl font-bold mb-5">THÔNG TIN GIẢI ĐẤU</h2>
 
             <div class="mb-5">
 
-                <label for="tour_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tên giải
-                    đấu</label>
+                <label for="tour_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tên giải đấu</label>
                 <input type="text" id="tour_name" aria-label="disabled input" class="mb-5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500" value="<?php echo $info_tournament['name']  ?>" disabled>
 
             </div>
 
             <div class="mb-5">
 
-                <label for="tour_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ngày bắt
-                    đâu</label>
+                <label for="tour_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ngày bắt đâu</label>
                 <input type="text" id="tour_name" aria-label="disabled input" class="mb-5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500" value="<?php echo $start_day ?>" disabled>
 
             </div>
@@ -62,15 +60,14 @@ session_start();
 
             <div class="mb-5">
 
-                <label for="tour_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ngày kết
-                    thúc</label>
+                <label for="tour_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ngày kết thúc</label>
                 <input type="text" id="tour_name" aria-label="disabled input" class="mb-5 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500" value="<?php echo $end_day  ?>" disabled>
 
             </div>
         </div>
 
         <div class="overflow-y-auto shadow-md sm:rounded-lg w-full ms-5 p-5">
-            <h2 class="text-xl font-bold ms-5 mb-5">Danh sách đội</h2>
+            <h2 class="text-xl font-bold ms-5 mb-5">DANH SÁCH ĐỘI</h2>
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
@@ -83,8 +80,8 @@ session_start();
                         <th scope="col" class="px-6 py-3">
                             Đội trưởng
                         </th>
-                        <th scope="col" class="px-6 py-3">
-
+                        <th scope="col" class="px-1 py-3">
+                            SDT
                         </th>
 
                     </tr>
@@ -109,10 +106,10 @@ session_start();
                             ' . $team['cus_name'] . '
                         </th>
 
-                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                            <a href="delete_team.php?id=' . $team['id'] . '" class="text-red-500">Delete</a>
+                        <th scope="row" class="px-1 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                            ' . $team['phone'] . '
                         </th>
-                        
+
                     </tr>';
                         }
                     }
@@ -127,16 +124,16 @@ session_start();
         <h2 class="text-left font-bold text-2xl mb-5 ms-5">LỊCH THI ĐẤU</h2>
         <div class="flex ">
             <?php
-            $result = $tour->existMatchTour($id);
-            if (!isset($result)) {
+            $existMatch = $tour->existMatchTour($id);
+            if (!$existMatch) {
 
                 echo '<form action="random_match.php" method="post">
-                <input type="hidden" name="id" value="<?php echo $id ?>">
-            <button type="submit" name="random"
-                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 ms-5">
-                Random Match
-            </button>
-            </form>';
+                        <input type="hidden" name="id" value="'.$id.'">
+                        <button type="submit" name="random"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 ms-5">
+                            Random Match
+                        </button>
+                    </form>';
             }
             ?>
             <form action="create_match?tour_id=<?= $id ?>" method="post">
@@ -182,10 +179,8 @@ session_start();
             </thead>
 
             <tbody>';
-        if ($result == null) {
-            echo '<script>alert(
-                                "Không có trận đáu nào cả"
-                                )</script>';
+        if ($existMatch == null) {
+            return;
         } else {
             $currentDate = date('Y-m-d');
             $index = 1;

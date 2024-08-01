@@ -955,6 +955,25 @@ class Admin extends DB
         }
     }
 
+    public function existTournament($name)
+    {
+        $query = "SELECT COUNT(*) FROM tournament WHERE name LIKE :name";
+        $params = array(":name" => '%' . $name . '%');
+        $result = $this->select($query, $params);
+        if ($result[0]['COUNT(*)'] > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function getTypeTour()
+    {
+        $query = "SELECT * FROM type_tour";
+        $result = $this->select($query);
+        return $result;
+    }
+
     public function createTournament()
     {
 
@@ -967,6 +986,20 @@ class Admin extends DB
             $end_day_format = DateTime::createFromFormat('Y-m-d', $end_day);
 
             $manager = $_POST['manager'];
+            $type = $_POST['type']??'';
+            
+            if($name == '' || $start_day == '' || $end_day == '' || $manager == ''|| $type == ''){
+                echo '<script>alert("Vui lòng điền đầy đủ thông tin")
+                window.location.href = "create_tournament.php";
+                </script>';
+                exit();
+            }
+
+            if ($this->existTournament($name)) {
+                echo '<script>alert("Tên giải đấu đã tồn tại")
+                window.location.href = "create_tournament.php";
+                </script>';
+            }
 
             if ($start_day_format > $end_day_format) {
                 echo '<script>alert("Ngày bắt đầu không thể lớn hơn ngày kết thúc")
@@ -974,13 +1007,14 @@ class Admin extends DB
                 </script>';
             }
 
-            $query = "INSERT INTO tournament (name,deleted, start_day, end_day, manager_id) VALUES (:name,:deleted,:start_day,:end_day,:manager)";
+            $query = "INSERT INTO tournament (name,deleted, start_day, end_day, manager_id,type_tour_id) VALUES (:name,:deleted,:start_day,:end_day,:manager,:type_tour)";
             $params = array(
                 ":name" => $name,
                 ":deleted" => 0,
                 ":start_day" => $start_day,
                 ":end_day" => $end_day,
-                ":manager" => $manager
+                ":manager" => $manager,
+                ":type_tour" => $type
             );
 
             $result = $this->insert($query, $params);
@@ -994,7 +1028,9 @@ class Admin extends DB
                 echo '<script>alert("Failed to create tournament.");</script>';
             }
         }
+
         $managers = $this->getAllManager();
+        $type_tour = $this->getTypeTour();
         $currentDate = date('Y-m-d');
 
         echo '<form class="max-w-sm mx-auto" method="post" action="create_tournament.php">
@@ -1025,7 +1061,23 @@ class Admin extends DB
         }
 
         echo '</select>
-        </div>
+            </div>
+
+            <div class="mb-5">
+                <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn loại giải đấu</label>
+                <ul class="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    
+            ';
+        foreach ($type_tour as $t) {
+            echo '  <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                        <div class="flex items-center ps-3">
+                            <input id="type_list" type="radio" name="type" value="'.$t['id'].'" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500" '.($t['id'] == $type_tour[0]['id'] ? 'checked' : '').'>
+                            <label for="type_list" class="w-full py-3 ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">'.$t['name'].'</label>
+                        </div>
+                    </li>';
+        }
+        echo '  </ul>
+            </div>
             <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Tạo giải đấu</button>
         </form>';
     }
@@ -1113,9 +1165,6 @@ class Admin extends DB
                 </div>
                 </form>';
     }
-
-
-
 
     public function historyMatchDetail($id)
     {
