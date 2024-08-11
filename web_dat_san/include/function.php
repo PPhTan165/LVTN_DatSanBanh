@@ -1,4 +1,6 @@
 <?php
+
+
 function loadClass($c)
 {
 	include ROOT."/classes/".$c.".class.php";
@@ -30,4 +32,14 @@ function isValidVietnamPhoneNumber($phone) {
 function isValidPassword($password) {
 	$pattern = "/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/";
 	return preg_match($pattern, $password);
+}
+
+function randomString($length) {
+	$characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	$string = '';
+	$currentYear = date('Y');
+	for ($i = 0; $i < $length; $i++) {
+		$string .= $characters[rand(0, strlen($characters) - 1)];
+	}
+	return $string . $currentYear;
 }

@@ -21,15 +21,21 @@ $user = new User;
 
 <body>
     <?php require_once("../include/header.php") ?>
-    <div class="main p-8 mt-5">
+    <div class="main mt-5">
         <div class="banner flex justify-center items-center w-full">
             <img src="../img/banner.jpg" alt="logo" class="h-32">
         </div>
-        <?php
+        <div>
+
+            <?php
             $pitch = new Product;
+            if(isset($_SESSION['cus_id'])){
+                $pitch->getSessionTeam($_SESSION['cus_id']);
+            }
             $pitch->filterPitch();
-        
-?>
+            
+            ?>
+        </div>
 
     </div>
     <?php require_once("../include/footer.php") ?>

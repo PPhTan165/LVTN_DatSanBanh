@@ -25,7 +25,7 @@ session_start();
         <div class="relative overflow-x-auto shadow-md sm:rounded-lg h-full mb-10 p-8">
             
         <?php
-        
+            
             $user = new User;
             $user->historyBooked();
             

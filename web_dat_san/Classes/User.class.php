@@ -39,8 +39,8 @@ class User extends DB
     }
 
     public function getPromotion($id)
-    {
-        $promotion_query = "SELECT pr.id, pr.name, pr.discount,b.id b_id FROM promotion pr
+    {   
+        $promotion_query = "SELECT pr.id, pr.name, pr.discount, date_exp, discount, max_get FROM promotion pr
         join booking b on pr.id = b.promotion_id
         WHERE b.id = :id";
         $promotion_params = array(":id" => $id);
@@ -48,6 +48,55 @@ class User extends DB
         if (!isset($result))
             return 0;
         return $result;
+    }
+
+    public function getIdBooked()
+    {
+        $query = "SELECT b.id
+                FROM booking b
+                WHERE b.date_created IN (
+                        SELECT date_created
+                        FROM booking
+                        WHERE cus_id = :cus_id
+                        GROUP BY date_created
+                        HAVING COUNT(*) > 1
+                        )";
+        $params = array(":cus_id" => $_SESSION['cus_id']);
+        $result = $this->select($query, $params);
+        if ($result) {
+            return $result[0]['id'];
+        } else {
+            return false;
+        }
+    }
+
+    public function getInvoice()
+    {
+        $cus_id = $_SESSION['cus_id'];
+        $query = "SELECT b1.id, b1.name, b1.phone, b1.date, p.name AS p_name, b1.total, d.start, d.end, b1.status_id, b1.promotion_id, pr.price_per_hour
+                    FROM booking b1
+                    JOIN pitch_detail pd ON pd.id = b1.pitch_detail_id
+                    JOIN pitch p ON pd.pitch_id = p.id
+                    JOIN price pr ON pd.price_id = pr.id
+                    JOIN duration d ON pd.duration_id = d.id
+                    WHERE b1.cus_id = 1 AND b1.date_created IN (
+                        SELECT date_created
+                        FROM booking
+                        WHERE cus_id = :cus_id
+                        GROUP BY date_created
+                        HAVING COUNT(*) > 1
+                        )
+                    ";
+        $params = array(
+            ":cus_id" => $cus_id
+        );
+        $result = $this->select($query, $params);
+        if ($result == null) {
+            echo '<script>alert("Không tìm thấy thông tin")
+            window.location.href="history.php"</script>';
+        } else {
+            return $result;
+        }
     }
 
     public function getPriceByPitchDetailId($id)
@@ -157,23 +206,32 @@ class User extends DB
         }
     }
 
-    public function historyBooked($page = 1, $records_per_page = 10)
-    {
+
+
+    public function historyBooked()
+    {   
+        $page = isset($_GET['page']) ? $_GET['page'] : 1; 
+        $records_per_page = 10;
+        $offset = ($page - 1) * $records_per_page;
+        
         $currentDate = date("Y-m-d");
         $current_format = DateTime::createFromFormat('Y-m-d', $currentDate);
 
-        $total_query = "SELECT COUNT(*) as total FROM pitch";
+        $total_query = "SELECT COUNT(*) as total FROM booking";
         $total_result = $this->select($total_query);
         $total_records = $total_result[0]['total'];
         $total_pages = ceil($total_records / $records_per_page);
 
 
         $query = "SELECT b.id, b.name, b.date, p.name AS p_name, b.total, d.start, b.status_id 
-        FROM booking b
-        JOIN pitch_detail pd ON pd.id = b.pitch_detail_id
-        JOIN pitch p ON pd.pitch_id = p.id
-        JOIN duration d ON pd.duration_id = d.id
-        WHERE b.cus_id = :cus_id";
+                    FROM booking b
+                    JOIN pitch_detail pd ON pd.id = b.pitch_detail_id
+                    JOIN pitch p ON pd.pitch_id = p.id
+                    JOIN duration d ON pd.duration_id = d.id
+                    WHERE b.cus_id = :cus_id
+                    order by b.date desc
+                    limit $offset, $records_per_page";
+
         $params = array(":cus_id" => $_SESSION['cus_id']);
         $histories = $this->select($query, $params);
         if ($histories == null) {
@@ -181,7 +239,7 @@ class User extends DB
             <h2 class="text-2xl font-bold">Bạn chưa đặt sân nào</h2>';
         } else {
 
-            $index = 1;
+            $index = $offset + 1;
             echo '<div class="history">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -238,7 +296,7 @@ class User extends DB
                 </td>
                 
                 <td class="px-6 py-4">
-                ' . $history['total'] . '
+                ' . $history['total'] . ' VNĐ
                 </td>
                 <td class="px-6 py-4">
                 ';
@@ -283,7 +341,30 @@ class User extends DB
             }
             echo '</tbody>
             </table>';
-            $this->pagination($page, $total_pages, $_SERVER['PHP_SELF']);
+           
+            echo '</div>';
+
+            //pagination
+            echo '<div class="flex justify-center mt-5">';
+            echo '<nav aria-label="Page navigation example">';
+            echo '<ul class="inline-flex items-center -space-x-px">';
+            if ($page > 1) {
+                echo '<li><a href="history.php&page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
+            }
+    
+            for ($i = 1; $i <= $total_pages; $i++) {
+                if ($i == $page) {
+                    echo '<li><a href="history.php?page=' . $i . '" class="px-3 py-2 leading-tight text-blue-600 bg-blue-50 border border-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">' . $i . '</a></li>';
+                } else {
+                    echo '<li><a href="history.php?page=' . $i . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">' . $i . '</a></li>';
+                }
+            }
+    
+            if ($page < $total_pages) {
+                echo '<li><a href="history.php?page=' . ($page + 1) . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a></li>';
+            }
+            echo '</ul>';
+            echo '</nav>';
             echo '</div>';
         }
     }
@@ -398,7 +479,4 @@ class User extends DB
             echo '</div>';
         }
     }
-
-    
-    
 }

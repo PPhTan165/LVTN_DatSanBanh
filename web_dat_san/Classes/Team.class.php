@@ -12,6 +12,20 @@ class Team extends Db
         return $result;
     }
 
+    public function existTeam($name)
+    {
+        $query = "SELECT COUNT(*) as total FROM team WHERE name = :name";
+        $params = array(
+            ":name" => $name
+        );
+        $result = $this->select($query, $params);
+        if ($result[0]['total'] > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public function filterTeam()
     {
         echo '<div class="overflow-x-auto shadow-md sm:rounded-lg">
@@ -134,10 +148,13 @@ class Team extends Db
 
     public function getTeamOfTournamentById($id)
     {
-       $query = "SELECT team.id as id, team.name as t_name, customer.name as cus_name, customer.phone from team 
-        JOIN customer on customer.team_id = team.id
-        where tournament_id = :id";
-       $params = array(":id"=>$id);
+       $query = "SELECT DISTINCT t.id as id, t.name as t_name, c.name as cus_name, c.phone, t.point,t.group from team t
+       JOIN customer c on c.team_id = t.id
+        where t.tournament_id = :id
+        ORDER BY t.point DESC";
+       $params = array(
+                ":id"=>$id,
+            );
          $result = $this->select($query,$params);
          if($result > 0){
              return $result;
@@ -146,11 +163,22 @@ class Team extends Db
          }
     }
      
-    public function createTeam(){
-        
+    public function getTeamOfGroupTournamentById($id,$group){
+        $query = "SELECT DISTINCT t.id as id, t.name as t_name, c.name as cus_name, c.phone, t.point, t.group from team t
+       JOIN customer c on c.team_id = t.id
+        where t.tournament_id = :id and t.group = :group
+        ORDER BY t.point DESC";
+       $params = array(
+                ":id"=>$id,
+                ":group"=>$group
+            );
+         $result = $this->select($query,$params);
+         if($result > 0){
+             return $result;
+         }else{
+             return false;
+         }
     }
-
-    
 
     public function getIdUser(){
         $email =$_SESSION['user'];

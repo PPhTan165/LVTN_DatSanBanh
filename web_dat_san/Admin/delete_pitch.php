@@ -6,7 +6,8 @@ session_start();
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
        $db = new DB;
        $id = $_GET['pitch'];
-       $booking_query = 'SELECT COUNT(*) FROM booking b 
+       $curentDate = date('Y-m-d');
+       $booking_query = 'SELECT b.date FROM booking b 
        JOIN pitch_detail pd ON b.pitch_detail_id = pd.id
        JOIN pitch p ON pd.pitch_id = p.id
        where p.id = :id and b.status_id = 1';
@@ -14,8 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
               ':id' => $id
        );
        $result = $db->select($booking_query, $params_booking);
-       if ($result[0]['COUNT(*)'] > 0) {
-              echo "<script>alert('Sân đã có người đặt không thể xóa')
+       if ($result[0]['date'] >= $curentDate) {
+              echo "<script>alert('Sân đang có lịch đặt không thể khoá')
               window.location.href='index.php?url=pitch'</script>";
               exit();
        } else {

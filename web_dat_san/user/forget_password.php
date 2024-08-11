@@ -89,22 +89,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <img src="https://congtrinhthep.vn/wp-content/uploads/2017/12/cong-trinh-dan-khong-gian-gioi-san-bong-moi-cua-tottenham-hotspur.jpg" alt="img" height="600px" class="rounded-xl">
             </div>
         <form class="w-96" action="login.php" method="POST">
-            <h2 class="text-center text-2xl font-bold whitespace-normal mt-3 ">ĐĂNG NHẬP</h2>
+            <h2 class="text-center text-2xl font-bold whitespace-normal mt-3 ">QUÊN MẬT KHẨU</h2>
             <div class="mb-5">
                 <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>
-                <input type="email" id="email" name="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="example@gmail.com" required />
+                <input type="email" id="email" name="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Nhập email quên mật khẩu" required />
             </div>
-            <div class="mb-5">
-                <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-                <input type="password" id="password" name="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required />
-            </div>
-            <div class=" mb-5">
-                <p class="font-bold text-sm">Bạn chưa có tài khoản ? Bạn có thể <a class="text-blue-500" href="register.php">Đăng ký ở đây.</a></p>
-                <p class="font-bold text-sm">Bạn quên mật khẩu?<a class="text-blue-500" href="forget_password.php">Reset mật khẩu.</a></p>
-
-            </div>
+            
             <div class="flex justify-center w-full">
-                <button type="submit" name="submit" class=" text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Đăng nhập</button>
+                <button type="submit" name="submit" class=" text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Lấy mật khẩu mới</button>
             </div>
         </form>
     </div>

@@ -2,10 +2,45 @@
 
 class Manager extends DB
 {
+    public function existPitch($name)
+    {
+        $query = "SELECT * FROM pitch where name like :name";
+        $params = array(":name" => '%' . $name . '%');
+        $result = $this->select($query, $params);
+        if ($result) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function existPromotion($name)
+    {
+        $query = "SELECT * FROM promotion where name like :name";
+        $params = array(":name" => '%' . $name . '%');
+        $result = $this->select($query, $params);
+        if ($result) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function getPromotionById($id)
+    {
+        $query = 'SELECT * FROM promotion WHERE id = :id';
+        $params = array(":id" => $id);
+        $result = $this->select($query, $params);
+        if ($result) {
+            return $result[0];
+        } else {
+            return false;
+        }
+    }
 
     public function getAllManager()
     {
-        $query = "SELECT * FROM manager join user on manager.user_id = user.id where deleted = 0";
+        $query = "SELECT manager.id,manager.name,manager.phone,user.deleted from manager join user on manager.user_id = user.id where user.deleted=0";
         $result = $this->select($query);
         return $result;
     }
@@ -17,6 +52,51 @@ class Manager extends DB
         return $result;
     }
 
+    private function getAllStatus()
+    {
+        $query = "SELECT * FROM status";
+        $result = $this->select($query);
+        return $result;
+    }
+
+    public function getTournamentById($id)
+    {
+        $query = "SELECT * FROM tournament where id = :id";
+        $params = array(":id" => $id);
+        $result = $this->select($query, $params);
+        if($result){
+            return $result[0];
+        }else{
+                return false;
+            }
+    }
+    public function getPitch()
+    {
+        $query = "SELECT * FROM pitch where deleted = 0 and manager_id = :mana_id";
+        $params = array(":mana_id" => $_SESSION['manager']);
+        $result = $this->select($query, $params);
+        if ($result) {
+            return $result;
+        } else {
+            return false;
+        }
+    }
+
+    public function getBookingById($id)
+    {
+        $query = "SELECT b.id, b.total,b.date,p.manager_id,p.type_id FROM booking b
+        JOIN pitch_detail pd ON pd.id = b.pitch_detail_id
+        JOIN pitch p ON p.id = pd.pitch_id 
+        where b.id = :id";
+        $params = array(":id" => $id);
+        $result = $this->select($query, $params);
+        if ($result) {
+            return $result[0];
+        } else {
+            return false;
+        }
+    }
+
     public function filterPage()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'GET') {
@@ -24,25 +104,16 @@ class Manager extends DB
 
             switch ($url) {
                 case 'pitch':
-
                     $this->getAllPitch();
-
                     break;
                 case 'booking':
                     $this->getAllBooking();
                     break;
-                case 'price':
-                    $this->getPrice();
-                    break;
-                
-                case 'team':
-                    # code...
+                case 'revenue':
+                    $this->getAllRevenue();
                     break;
                 case 'tournament':
-                    # code...
-                    break;
-                case 'promotion':
-                    # code...
+                    $this->getAllTournament();
                     break;
 
                 default:
@@ -52,27 +123,31 @@ class Manager extends DB
         }
     }
 
-    public function getAllPitch($page = 1, $records_per_page = 10)
+    public function getAllPitch()
     {
-        $total_query = "SELECT COUNT(*) as total FROM pitch";
-        $total_result = $this->select($total_query);
+        $page = isset($_GET['page']) ? $_GET['page'] : 1;
+        $records_per_page = 5;
+        $offset = ($page - 1) * $records_per_page;
+
+        $total_query = "SELECT COUNT(*) as total FROM pitch where manager_id = :mana_id";
+        $params = array(":mana_id" => $_SESSION['manager']);
+        $total_result = $this->select($total_query, $params);
         $total_records = $total_result[0]['total'];
         $total_pages = ceil($total_records / $records_per_page);
 
-        $query = "SELECT pitch.id as pitch_id, pitch.name as pitch_name, type.name as type_name,manager.name as mana_name,description FROM pitch 
+        $query = "SELECT pitch.id as pitch_id, pitch.name as pitch_name, type.name as type_name, manager.name as mana_name, description, deleted FROM pitch 
                     join type on pitch.type_id = type.id
                     join manager on pitch.manager_id = manager.id
-                    where deleted = 0 and manager_id = :manager_id";
-        $params = array(
-            ":manager_id" => $_SESSION['manager']
-        );
-        $result = $this->select($query,$params);
+                    where pitch.manager_id = :mana_id
+                    ORDER BY pitch_id
+                    LIMIT $offset, $records_per_page";
+        $result = $this->select($query, $params);
 
         echo '
         <div>
-            <h2 class=" text-4xl font-bold text-center">Danh sách sân</h2>
+            <h2 class=" text-4xl font-bold text-center mb-5">Danh sách sân</h2>
             </div>
-            
+          
             <div class=" overflow-x-auto">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -93,11 +168,14 @@ class Manager extends DB
                             Loại sân
                         </th>
                         <th scope="col" class="px-6 py-3">
+                            Trạng thái
+                        </th>
+                        <th scope="col" class="px-6 py-3">
                         </th>
                     </tr>
                 </thead>
                 <tbody>';
-        $index = 1;
+        $index = $offset + 1;  // Để số thứ tự bắt đầu từ vị trí đúng
         foreach ($result as $team) {
             echo ' <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                     <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
@@ -115,279 +193,173 @@ class Manager extends DB
                     <td class="px-6 py-4">
                     ' . $team['type_name'] . '
                     </td>
-
-                    <td class="px-1-py-4">
-                        <a href="update_pitch.php?pitch=' . $team['pitch_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Update</a>
-                        <a href="delete_pitch.php?pitch=' . $team['pitch_id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Delete</a>
+                    <td class="px-6 py-4">
+                    ';
+            if ($team['deleted'] == 0) {
+                echo '<div class="text-green-500 font-bold">Hoạt động</div>';
+            } else {
+                echo '<div class="text-red-500 font-bold">Đã khoá</div>';
+            }
+            echo '
                     </td>
+
+                    <td class="px-1-py-4">';
+            if ($team['deleted'] == 0) {
+                echo '
+                        <a href="detail_pitch.php?pitch=' . $team['pitch_id'] . '" class="focus:outline-none text-white bg-blue-500 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-500 dark:focus:ring-blue-500">Chi tiết</a>
+                        <a href="update_pitch.php?pitch=' . $team['pitch_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Cập nhật</a>
+                        <a href="delete_pitch.php?pitch=' . $team['pitch_id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Khoá</a>
+                    ';
+            } else {
+                echo '<a href="open_pitch.php?pitch=' . $team['pitch_id'] . '" class="focus:outline-none text-white bg-blue-500 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-500 dark:focus:ring-blue-500">Mở sân</a> ';
+            }
+
+            echo ' </td>
 
                     </tr>';
         }
 
         echo '</tbody>
                     </table>
+
+                    
         </div>
         ';
-
-        $this->pagination($page, $total_pages, $_SERVER['PHP_SELF']);
-    }
-
-    public function createPitch()
-    {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $name_pitch = $_POST['name_pitch'];
-            $manager_post = $_POST['manager'];
-            $type_post = $_POST['type'];
-            $des = $_POST['descript'] ?? '';
-
-            $insert_pitch = "INSERT INTO pitch (name,deleted, description, manager_id, type_id) VALUES (:name_pitch,:deleted,:des,:manager_id,:type_id)";
-            $pitch_arr = array(
-                ":name_pitch" => $name_pitch,
-                ":deleted" => 0,
-                ":des" => $des,
-                ":manager_id" => $manager_post,
-                ":type_id" => $type_post
-            );
-
-            $result_pitch = $this->insert($insert_pitch, $pitch_arr);
-
-            if ($result_pitch > 0) {
-                $id_pitch = $this->getInsertId();
-                for ($i = 1; $i < 19; $i++) {
-
-                    $sql = "insert into pitch_detail (duration_id, pitch_id, price_id) values (:duration, :pitch, :price)";
-
-                    if ($i < 5) {
-                        if ($type_post == 1) {
-                            $price = 1;
-                        } else if ($type_post == 2) {
-                            $price = 5;
-                        } else {
-                            $price = 9;
-                        }
-                    } else if ($i < 10) {
-                        if ($type_post == 1) {
-                            $price = 2;
-                        } else if ($type_post == 2) {
-                            $price = 6;
-                        } else {
-                            $price = 10;
-                        }
-                    } else if ($i < 13) {
-                        if ($type_post == 1) {
-                            $price = 3;
-                        } else if ($type_post == 2) {
-                            $price = 7;
-                        } else {
-                            $price = 11;
-                        }
-                    } else if ($i >= 13) {
-                        if ($type_post == 1) {
-                            $price = 4;
-                        } else if ($type_post == 2) {
-                            $price = 8;
-                        } else {
-                            $price = 12;
-                        }
-                    }
-
-                    $arr = array(
-                        ":duration" => $i,
-                        ":pitch" => $id_pitch,
-                        ":price" => $price
-                    );
-
-                    $result_pd = $this->insert($sql, $arr);
-                }
-                if ($result_pd > 0) {
-                    echo 'tạo sân thành công <a href="index.php?url=pitch">Quay lại</a>';
-                }
-            }
+        echo '<div class="flex justify-center mt-5">';
+        echo '<nav aria-label="Page navigation example">';
+        echo '<ul class="inline-flex items-center -space-x-px">';
+        if ($page > 1) {
+            echo '<li><a href="index.php?url=pitch&page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
         }
 
-
-        $managers = $this->getAllManager();
-        $types = $this->getType();
-
-        echo '<form class="max-w-sm mx-auto" method="post" action="create_pitch.php">
-        <div class="mb-5">
-            <label for="name_pitch" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tên sân</label>
-            <input type="text" id="name_pitch" name="name_pitch" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light" placeholder="name@flowbite.com" required />
-            </div>
-            <div class="mb-5">
-            
-            <label for="manager" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn quản lý</label>
-            <select id="manager" name="manager" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-            ';
-        foreach ($managers as $manager) {
-            echo '<option value="' . $manager['id'] . '">' . $manager['name'] . '</option>';
-        }
-
-        echo '</select>
-        </div>
-
-        <div class="mb-5">
-
-            <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn loại sân</label>
-            <select id="type" name="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-            ';
-        foreach ($types as $type) {
-            echo '<option value="' . $type['id'] . '">' . $type['name'] . '</option>';
-        }
-        echo '
-
-            </select>
-        </div>
-        <div class="mb-5">
-            <label for="descript" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chú thích</label>
-            <textarea id="message" rows="4" name="descript" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Leave a comment..."></textarea>
-        </div>
-
-
-        <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Register new account</button>
-        </form>';
-    }
-
-    public function updatePitch()
-    {
-        $id = $_GET['pitch'];
-
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
-            $name_pitch = $_POST['name_pitch'];
-            $type_post = $_POST['type'];
-            $des = $_POST['descript'] ?? '';
-
-            $update_query = "UPDATE pitch SET name=:name, description=:descript, type_id=:type_id WHERE id=:id";
-
-            $params = array(
-                ":name" => $name_pitch,
-                ":descript" => $des,
-                ":type_id" => $type_post,
-                ":id" => $id
-            );
-
-            $result = $this->update($update_query, $params);
-
-
-            if ($result > 0) {
-                echo "Cập nhật thành công";
+        for ($i = 1; $i <= $total_pages; $i++) {
+            if ($i == $page) {
+                echo '<li><a href="index.php?url=pitch&page=' . $i . '" class="px-3 py-2 leading-tight text-blue-600 bg-blue-50 border border-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">' . $i . '</a></li>';
             } else {
-                echo "Không có thay đổi nào được thực hiện.";
+                echo '<li><a href="index.php?url=pitch&page=' . $i . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">' . $i . '</a></li>';
             }
         }
 
-
-        if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-            $query = "SELECT * FROM pitch WHERE id = :id";
-            $params = array(":id" => $id);
-            $result = $this->select($query, $params);
-            if ($result > 0) {
-
-                $pitch = $result[0];
-                $types = $this->getType();
-
-                echo ' <h2 class="text-2xl font-bold mt-5 text-center">Cập nhật sân banh</h2>
-                <form class="max-w-sm mx-auto" method="post" action="update_pitch.php?pitch=' . $id . '">
-                <div class="mb-5">
-                    <label for="name_pitch" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tên sân</label>
-                    <input type="text" id="name_pitch" name="name_pitch" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light" value="' . $pitch['name'] . '" />
-                    </div>
-                    
-        
-                <div class="mb-5">
-        
-                    <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn loại sân</label>
-                
-                    <select id="type" name="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                        ';
-                foreach ($types as $type) {
-                    echo '<option value="' . $type['id'] . '">' . $type['name'] . '</option>';
-                }
-                echo '
-        
-                    </select>
-                </div>
-                <div class="mb-5">
-                    <label for="descript" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chú thích</label>
-                    <textarea id="message" rows="4" name="descript" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Leave a comment..."></textarea>
-                </div>
-
-                <div class="flex justify-between">
-                <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Cập nhật</button>
-                <a href="index.php?url=pitch" class="font-medium text-blue-600 underline">Quay lại</a>
-                </div>
-                </form>';
-            }
+        if ($page < $total_pages) {
+            echo '<li><a href="index.php?url=pitch&page=' . ($page + 1) . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a></li>';
         }
+        echo '</ul>';
+        echo '</nav>';
+        echo '</div>';
     }
 
-    public function getAllBooking($page = 1, $records_per_page = 10)
+    public function getAllBooking()
     {
         date_default_timezone_set('Asia/Ho_Chi_Minh');
-
+        $page = isset($_GET['page']) ? $_GET['page'] : 1;
+        $records_per_page = 10;
         $offset = ($page - 1) * $records_per_page;
 
         // Truy vấn để lấy tổng số bản ghi
-        $total_query = "SELECT COUNT(*) as total FROM booking";
-        $total_result = $this->select($total_query);
+        $total_query = "SELECT COUNT(*) as total FROM booking b 
+              JOIN pitch_detail pd ON b.pitch_detail_id = pd.id
+              JOIN pitch p on pd.pitch_id = p.id
+              WHERE p.manager_id = :mana_id";
+        $total_params = array(":mana_id" => $_SESSION['manager']);
+        $total_result = $this->select($total_query, $total_params);
         $total_records = $total_result[0]['total'];
         $total_pages = ceil($total_records / $records_per_page);
 
-        $query = "SELECT b.id b_id, b.date, total, c.name cus_name, phone, pitch.name p_name,status_id, d.start,d.end
-        FROM booking b 
-        JOIN customer c ON b.cus_id = c.id 
-        JOIN pitch_detail pd ON b.pitch_detail_id = pd.id
-        JOIN pitch on pd.pitch_id = pitch.id
-       	JOIN duration d on d.id = pd.duration_id
-        ";
+        $_GET['name'] = $_GET['name'] ?? '';
+        $_GET['phone'] = $_GET['phone'] ?? '';
+        $_GET['pitch'] = $_GET['pitch'] ?? '';
+        $_GET['status'] = $_GET['status'] ?? '';
 
-        $result = $this->select($query);
+        if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['phone'])) {
+            if ($_GET['phone'] !== '') {
+                if (isValidVietnamPhoneNumber($_GET['phone']) == false) {
+                    echo '<script>alert("Số điện thoại không hợp lệ");</script>';
+                    $_GET['phone'] = '';
+                }
+            }
+        }
 
-        $index = 1;
+        $query = "SELECT b.id as b_id, b.name as b_name, b.date, total, c.name cus_name, c.phone, p.name p_name, p.id as p_id, status_id, d.start, d.end
+              FROM booking b 
+              JOIN customer c ON b.cus_id = c.id 
+              JOIN pitch_detail pd ON b.pitch_detail_id = pd.id
+              JOIN pitch p on pd.pitch_id = p.id
+              JOIN duration d on d.id = pd.duration_id
+              WHERE b.name like :name and b.date like :date and p.id like :pitch and b.status_id like :status and p.manager_id = :mana_id
+              LIMIT $offset, $records_per_page";
+        $params = array(
+            ":name" => '%' . $_GET['name'] . '%',
+            ":date" => '%' . $_GET['phone'] . '%',
+            ":pitch" => '%' . $_GET['pitch'] . '%',
+            ":status" => '%' . $_GET['status'] . '%',
+            ":mana_id" => $_SESSION['manager']
+        );
+        $result = $this->select($query, $params);
+
+        $index = $offset + 1;  // Để số thứ tự bắt đầu từ vị trí đúng
         $currentDate = date("Y-m-d");
+        $current_format = DateTime::createFromFormat('Y-m-d', $currentDate);
+
         $time_now = date("H");
+
+        $pitchs = $this->getPitch();
+        $statuses = $this->getAllStatus();
         echo '
-        <div>
-        <h2 class=" text-4xl font-bold text-center mt-5">Danh sách đặt sân</h2>
-        </div>
-        
-        <div class=" overflow-x-auto mt-5">
+    <div>
+        <h2 class="text-4xl font-bold text-center mt-5">Danh sách đặt sân</h2>
+    </div>
+    <div class="mb-5 mt-5">
+        <form class="mb-5 flex justify-center items-center gap-5" method="get" action="index.php">
+              <input type="hidden" name="url" value="booking">
+            <div class="mb-5">
+                <label for="input1" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"> Tên người đặt</label>
+                <input value="' . $_GET['name'] . '" type="text" id="input1" name="name" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light" placeholder="Nhập tên người đặt" />
+            </div>
+            <div class="mb-5">
+                <label for="input2" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Số điện thoại</label>
+                <input value="' . $_GET['phone'] . '" type="text" id="input2" name="phone" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light" placeholder="Nhập số điện thoại " />
+            </div>
+            <div class="mb-5">
+                <label for="input3" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sân đặt</label>
+                <select id="input3" name="pitch" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                    <option value="">All</option>';
+        foreach ($pitchs as $pitch) {
+            echo '<option value="' . $pitch['id'] . '"' . ($_GET['pitch'] == $pitch['id'] ? ' selected' : '') . '>' . $pitch['name'] . '</option>';
+        }
+        echo '
+                </select>
+            </div>
+            <div class="mb-5">
+                <label for="input3" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Trạng thái</label>
+                <select id="input3" name="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                    <option value="">All</option>';
+        foreach ($statuses as $status) {
+            echo '<option value="' . $status['id'] . '"' . ($_GET['status'] == $status['id'] ? ' selected' : '') . '>' . $status['name'] . '</option>';
+        }
+        echo '
+                </select>
+            </div>
+            <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">tìm</button>
+        </form>
+    </div>
+    <div class="overflow-x-auto mt-5">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">
-                        STT
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        Người đặt
-                    </th>   
-                    <th scope="col" class="px-6 py-3">
-                        SDT
-                    </th>   
-                    <th scope="col" class="px-6 py-3">
-                        Tên sân
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        Ngày đặt
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        Giờ đặt
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                    Tổng
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                    Trạng thái
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-
-                    </th>
+                    <th scope="col" class="px-6 py-3">STT</th>
+                    <th scope="col" class="px-6 py-3">Người đặt</th>
+                    <th scope="col" class="px-6 py-3">SDT</th>
+                    <th scope="col" class="px-6 py-3">Tên sân</th>
+                    <th scope="col" class="px-6 py-3">Ngày đặt</th>
+                    <th scope="col" class="px-6 py-3">Giờ đặt</th>
+                    <th scope="col" class="px-6 py-3">Tổng</th>
+                    <th scope="col" class="px-6 py-3">Trạng thái</th>
+                    <th scope="col" class="px-6 py-3"></th>
                 </tr>
             </thead>
             <tbody>';
-        foreach ($result as $booking) {
 
+        foreach ($result as $booking) {
             $start = new DateTime($booking['start']);
             $start_format = $start->format("H:i");
             $start_h = $start->format("H");
@@ -395,42 +367,20 @@ class Manager extends DB
             $end = new DateTime($booking['end']);
             $end_format = $end->format("H:i");
 
-            $date = new DateTime($booking['date']);
+            $date = DateTime::createFromFormat('Y-m-d', $booking['date']);
             $date_format = $date->format("Y-m-d");
 
             $interval = (int)$start_h - (int)$time_now;
-            echo ' <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+            echo '<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                     <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">' . $index++ . '</th>
+                     <td class="px-6 py-4">' . $booking['b_name'] . '</td>
+                     <td class="px-6 py-4">' . $booking['phone'] . '</td>
+                     <td class="px-6 py-4">' . $booking['p_name'] . '</td>
+                     <td class="px-6 py-4">' . $date_format . '</td>
+                     <td class="px-6 py-4">' . $start_format . '- ' . $end_format . '</td>
+                     <td class="px-6 py-4">' . $booking['total'] . '</td>
+                     <td class="px-6 py-4 font-bold">';
 
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                ' . $index++ . '
-                </th>
-
-                <td class="px-6 py-4">
-                ' . $booking['cus_name'] . '
-                </td>
-
-                <td class="px-6 py-4">
-                ' . $booking['phone'] . '
-                </td>
-
-                <td class="px-6 py-4">
-                ' . $booking['p_name'] . '
-                </td>
-
-                <td class="px-6 py-4">
-                ' . $date_format . '
-                </td>
-
-                <td class="px-6 py-4">
-                ' . $start_format  . '- ' . $end_format . '
-                </td>
-
-                <td class="px-6 py-4">
-                ' . $booking['total'] . '
-                </td>
-
-                <td class="px-6 py-4 font-bold">
-                ';
             switch ($booking['status_id']) {
                 case 1:
                     echo '<div class="text-blue-500">CREATED</div>';
@@ -441,51 +391,61 @@ class Manager extends DB
                 case 3:
                     echo '<div class="text-green-500">DONE</div>';
                     break;
-
                 default:
                     break;
             }
+
             echo '</td>
-
-                <td class="px-1-py-4">';
+        <td class="px-1 py-4">';
             if ($booking['status_id'] != 2) {
-
                 if ($booking['status_id'] == 1) {
-
-                    if ($currentDate <= $date_format) {
-
-                        if ($interval < 2) {
-
+                    if ($current_format <= $date) {
+                        if ($interval < 2 && $interval >= 0) {
                             echo '
-                                <a href="done_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Done</a>
-                                ';
+                        <a href="done_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Done</a>';
                         } else {
-
                             echo '
-                                <a href="done_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Done</a>
-                                <a href="cancel_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Cancel</a>
-                                ';
+                        <a href="done_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Done</a>
+                        <a href="cancel_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Cancel</a>';
                         }
                     } else {
-
                         echo '
-                                <a href="done_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Done</a>
-                                ';
+                    <a href="done_booking.php?booking=' . $booking['b_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Done</a>';
                     }
                 }
             }
             echo '</td>
-
-            </tr>';
+        </tr>';
         }
 
         echo '</tbody>
-                </table>
-        </div>
-        ';
+        </table>
+    </div>';
 
-        $this->pagination($page, $total_pages, $_SERVER['PHP_SELF']);
+        // Pagination
+        echo '<div class="flex justify-center mt-5">';
+        echo '<nav aria-label="Page navigation example">';
+        echo '<ul class="inline-flex items-center -space-x-px">';
+        if ($page > 1) {
+            echo '<li><a href="index.php?url=booking&page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
+        }
+
+        for ($i = 1; $i <= $total_pages; $i++) {
+            if ($i == $page) {
+                echo '<li><a href="index.php?url=booking&page=' . $i . '" class="px-3 py-2 leading-tight text-blue-600 bg-blue-50 border border-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">' . $i . '</a></li>';
+            } else {
+                echo '<li><a href="index.php?url=booking&page=' . $i . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">' . $i . '</a></li>';
+            }
+        }
+
+        if ($page < $total_pages) {
+            echo '<li><a href="index.php?url=booking&page=' . ($page + 1) . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a></li>';
+        }
+        echo '</ul>';
+        echo '</nav>';
+        echo '</div>';
     }
+
 
     public function getPrice()
     {
@@ -496,9 +456,11 @@ class Manager extends DB
 
         if ($result > 0) {
             echo '
-                <div class="text-2xl font-bold text-center mt-5"><h2>Thông tin giá sân</h2></div>
+                <div class="text-2xl font-bold text-center mt-5">
+                    <h2>GIÁ SÂN</h2>
+                </div>
                 <form action="index.php" method="get"> 
-                    <div class="mb-5 ">
+                    <div class="mb-5 flex items-center justify-center gap-3 mt-5">
                         <input type="hidden" name="url" value="price"/>
                         <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn loại sân</label>
                         <select id="type" name="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-96 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">';
@@ -520,7 +482,7 @@ class Manager extends DB
 
             case 'GET':
                 if (isset($_GET['type'])) {
-                    $price_query = "SELECT price.id, price_per_hour, period.name p_name, type.name t_name FROM `price`
+                    $price_query = "SELECT price.id, price_per_hour, period.name p_name, type.name t_name, period.time_period as p_time FROM price
                         JOIN period ON price.period_id = period.id
                         JOIN type ON type.id = price.type_id
                         WHERE type_id = :type_id";
@@ -530,21 +492,27 @@ class Manager extends DB
 
                     if ($price_result > 0) {
                         echo '<div class="overflow-x-auto mt-5">
-                        <form action="update_price.php" method="post">
+                        <form action="update_price.php" method="post >
                             <input type="hidden" name="type" value="' . $type_id . '"/>
                             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                                 <thead>
                                     <tr class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                        <th scope="col" class="px-6 py-3 text-center">Buổi</th>
-                                        <th scope="col" class="px-6 py-3">Giá</th>
-                                        <th scope="col" class="px-6 py-3"></th>   
+                                        <th scope="col" class="px-1 py-3 text-center text-base">STT</th>
+                                        <th scope="col" class="px-1 py-3 text-base">Buổi</th>
+                                        <th scope="col" class="px-1 py-3 text-base">Thời gian</th>
+                                        <th scope="col" class="px-3 py-3 text-center text-base">Giá</th>
+                                        <th scope="col" class="px-3 py-3"></th>   
                                     </tr>
                                 </thead> 
                                 <tbody>';
+                        $index = 1;
                         foreach ($price_result as $price) {
+
                             echo '<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                                <td scope="col" class="px-1 py-3 text-center">' . $price['p_name'] . '</td>
-                                <td scope="col" class="px-1 py-3">
+                                <td scope="col" class="px-1 py-3 text-center">' . $index++ . '</td>
+                                <td scope="col" class="px-1 py-3 font-semibold">' . strtoupper($price['p_name']) . '</td>
+                                <td scope="col" class="px-1 py-3 font-semibold">' . $price['p_time'] . '</td>
+                                <td scope="col" class="px-3 py-3">
                                     <input
                                         type="number" 
                                         id="price_' . $price['id'] . '" 
@@ -553,7 +521,7 @@ class Manager extends DB
                                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"/>
                                 </td>
                                 <td scope="col" class="px-1 py-3">
-                                    <button type="submit" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Update</button>
+                                    <button type="submit" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Cập nhật giá</button>
                                 </td>
                             </tr>';
                         }
@@ -575,17 +543,19 @@ class Manager extends DB
         }
     }
 
-    public function getAllUser($page = 1, $records_per_page = 10)
+    public function getAllUser()
     {
-
-        $total_query = "SELECT COUNT(*) as total FROM pitch";
+        $page = isset($_GET['page']) ? $_GET['page'] : 1;
+        $records_per_page = 10;
+        $total_query = "SELECT COUNT(*) as total FROM manager";
         $total_result = $this->select($total_query);
         $total_records = $total_result[0]['total'];
         $total_pages = ceil($total_records / $records_per_page);
-
+        $offset = ($page - 1) * $records_per_page;
         $query = "SELECT manager.id, manager.name, manager.phone, user_id, deleted, email from manager 
                     join user on manager.user_id = user.id 
-                    where user_id = user.id AND deleted = 0";
+                    where user_id = user.id AND deleted = 0
+                    LIMIT $offset, $records_per_page";
         $result = $this->select($query);
         if ($result > 0) {
             echo '
@@ -593,7 +563,7 @@ class Manager extends DB
                 <h2 class=" text-4xl font-bold text-center">Danh sách nhân viên</h2>
                 </div>
                 <div class="flex justify-end">
-                <a href="create_manager.php" class="me-5 font-bold text-lg text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Tạo tài khoản quản lý</a>
+                <a href="create_manager.php" class=" text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Tạo tài khoản quản lý</a>
                 </div>
                 <div class=" overflow-x-auto">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -614,7 +584,7 @@ class Manager extends DB
                         </tr>
                     </thead>
                     <tbody>';
-            $index = 1;
+            $index = $offset + 1;  // Để số thứ tự bắt đầu từ vị trí đúng
             foreach ($result as $manager) {
                 echo ' <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                         <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
@@ -628,8 +598,8 @@ class Manager extends DB
                         </td>
     
                         <td class="px-1-py-4">
-                            <a href="update_manager.php?id=' . $manager['user_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Update</a>
-                            <a href="delete_manager.php?id=' . $manager['user_id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Delete</a>
+                            <a href="update_manager.php?id=' . $manager['user_id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Cập nhật nhân viên</a>
+                            <a href="delete_manager.php?id=' . $manager['user_id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Xoá nhân viên</a>
                         </td>
     
                         </tr>';
@@ -640,124 +610,578 @@ class Manager extends DB
             </div>
             ';
 
-            $this->pagination($page, $total_pages, $_SERVER['PHP_SELF']);
+            // Pagination
+            echo '<div class="flex justify-center mt-5">';
+            echo '<nav aria-label="Page navigation example">';
+            echo '<ul class="inline-flex items-center -space-x-px">';
+            if ($page > 1) {
+                echo '<li><a href="index.php?url=manager&page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
+            }
+
+            for ($i = 1; $i <= $total_pages; $i++) {
+                if ($i == $page) {
+                    echo '<li><a href="index.php?url=manager&page=' . $i . '" class="px-3 py-2 leading-tight text-blue-600 bg-blue-50 border border-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">' . $i . '</a></li>';
+                } else {
+                    echo '<li><a href="index.php?url=manager&page=' . $i . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">' . $i . '</a></li>';
+                }
+            }
+
+            if ($page < $total_pages) {
+                echo '<li><a href="index.php?url=manager &page=' . ($page + 1) . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a></li>';
+            }
+            echo '</ul>';
+            echo '</nav>';
+            echo '</div>';
         }
     }
 
-    public function updateManager()
+
+    public function getAllTeam()
     {
-        $id = $_GET['id'];
-
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
-            $name = $_POST['fname'];
-            $phone = $_POST['phone'];
-            if (!isValidVietnamPhoneNumber($phone)) {
-                echo '<script>alert("Số điện thoại không hợp lệ)</script>';
-            }
-
-
-            $update_query = "UPDATE manager SET name=:name,phone=:phone WHERE user_id = :id";
-
-            $params = array(
-                ":name" => $name,
-                ":phone" => $phone,
-                ":id" => $id
-            );
-
-            $result = $this->update($update_query, $params);
-
-
-            if ($result > 0) {
-                echo "Cập nhật thành công";
-            } else {
-                echo "Không có thay đổi nào được thực hiện.";
-            }
-        }
-
-
-        if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-            $query = "SELECT * FROM manager WHERE user_id = :id";
-            $params = array(":id" => $id);
-            $result = $this->select($query, $params);
-            var_dump($result);
-            if ($result > 0) {
-
-                $manager = $result[0];
-
-
-                echo '<form class="max-w-sm mx-auto" method="post" action="update_manager.php?id=' . $id . '">
-                <div class="mb-5">
-                    <label for="fname" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tên nhân viên</label>
-                    <input type="text" id="fname" name="fname" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light" value="' . $manager['name'] . '" />
-                    </div>
-                  
-       
-                    <div class="mb-5">
-                    <label for="phone" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">SDT</label>
-                    <input type="tel" id="phone" name="phone" maxlength = "10" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light" value="' . $manager['phone'] . '" />
-                    </div>
-
-                <div class="flex justify-between">
-                <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Cập nhật thông tin</button>
-                <a href="index.php?url=manager" class="font-medium text-blue-600 underline">Quay lại</a>
-                </div>
-                </form>';
-            }
-        }
-    }
-
-    public function createManager()
-    {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
-
-
-
-            // if ($result_pitch > 0) {
-            // }
-
-
-            $managers = $this->getAllManager();
-            $types = $this->getType();
-
-            echo '<form class="max-w-sm mx-auto" method="post" action="create_pitch.php">
-        <div class="mb-5">
-            <label for="name_pitch" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tên sân</label>
-            <input type="text" id="name_pitch" name="name_pitch" class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 dark:shadow-sm-light" placeholder="name@flowbite.com" required />
-            </div>
-            <div class="mb-5">
-            
-            <label for="manager" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn quản lý</label>
-            <select id="manager" name="manager" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-            ';
-            foreach ($managers as $manager) {
-                echo '<option value="' . $manager['id'] . '">' . $manager['name'] . '</option>';
-            }
-
-            echo '</select>
-        </div>
-
-        <div class="mb-5">
-
-            <label for="type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chọn loại sân</label>
-            <select id="type" name="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-            ';
-            foreach ($types as $type) {
-                echo '<option value="' . $type['id'] . '">' . $type['name'] . '</option>';
-            }
+        $query = "SELECT team.id id, team.name team_name, customer.name cus_name, customer.phone
+                    FROM team 
+                    join customer on team.id = customer.team_id 
+                    where team.deleted = 0";
+        $result = $this->select($query);
+        if ($result > 0) {
             echo '
 
-            </select>
-        </div>
-        <div class="mb-5">
-            <label for="descript" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Chú thích</label>
-            <textarea id="message" rows="4" name="descript" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Leave a comment..."></textarea>
-        </div>
+                <div class="mb-5">
+                    <h2 class=" text-4xl font-bold text-center">Danh sách đội bóng</h2>
+                </div>
+                
+                <div class=" overflow-x-auto">
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">
+                                STT
+                            </th>
 
+                            <th scope="col" class="px-6 py-3">
+                                Tên đội
+                            </th>   
+                            
+                            <th scope="col" class="px-6 py-3">
+                                Đội trưởng
+                            </th>
 
-        <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Register new account</button>
-        </form>';
+                            <th scope="col" class="px-6 py-3">
+                                Số điện thoại
+                            </th>
+                            
+                            <th scope="col" class="px-6 py-3">
+                            
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>';
+            $index = 1;
+            foreach ($result as $team) {
+                echo ' <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        ' . $index++ . '
+                        </th>
+                        <td class="px-6 py-4">
+                        ' . $team['team_name'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                        ' . $team['cus_name'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                        ' . $team['phone'] . '
+                        </td>
+                        <td class="px-1-py-4">
+                            <a href="delete_team.php?id=' . $team['id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Delete</a>
+                        </td>
+                        </tr>';
+            }
+            echo '</tbody>
+                        </table>';
         }
+    }
+
+    public function getAllTournament()
+    {
+
+        $query = "SELECT t.id as id, t.name as t_name,t.start_day, m.name as m_name, type_tour_id as type,t.deleted
+        FROM tournament t
+        JOIN manager m ON t.manager_id = m.id
+        WHERE m.id = :mana_id
+        ORDER BY t.start_day ASC
+        ";
+        $params = array(
+            ":mana_id" => $_SESSION['manager']
+        );
+        $result = $this->select($query, $params);
+        if ($result > 0) {
+            echo '
+
+                <div class="mb-5">
+                    <h2 class=" text-4xl font-bold text-center">Danh sách đội bóng</h2>
+                </div>
+           
+                <div class=" overflow-x-auto">
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">
+                                STT
+                            </th>
+
+                            <th scope="col" class="px-6 py-3">
+                                Tên giải đấu 
+                            </th>   
+                            
+                            <th scope="col" class="px-6 py-3">
+                                Thời gian bắt đầu
+                            </th>
+
+                              
+                            <th scope="col" class="px-6 py-3">
+                                Nhân viên Quản lý
+                            </th>
+
+                            <th scope="col" class="px-6 py-3">
+                                Thể loại
+                            </th>
+
+                            <th scope="col" class="px-6 py-3">
+                                Trạng thái
+                            </th>
+
+                            <th scope="col" class="px-6 py-3">
+                            
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>';
+            $index = 1;
+            $currentDate = date('Y-m-d');
+            foreach ($result as $tournament) {
+                $start_date = new DateTime($tournament['start_day']);
+                $formatted_start_date = $start_date->format('d/m/Y');
+
+                echo ' <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        ' . $index++ . '
+                        </th>
+                        <td class="px-6 py-4">
+                        ' . $tournament['t_name'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                        ' . $formatted_start_date . '
+                        </td>
+                        
+                        <td class="px-6 py-4">
+                        ' . $tournament['m_name'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                        ';
+                if ($tournament['type'] == 1) {
+                    echo '<div class="font-bold">Đá loại trực tiếp</div>';
+                } else {
+                    echo '<div class="font-bold">Vòng tròn tính điểm</div>';
+                }
+                echo '
+                        </td>
+
+                        <td class="px-6 py-4">';
+                if ($tournament['deleted'] == 1) {
+                    echo '<div class="text-sm font-semibold text-red-500">Kết thúc</div>';
+                } else if ($currentDate < $tournament['start_day']) {
+                    echo '<div class="text-sm font-semibold text-blue-500">Chưa bắt đầu</div>';
+                } else {
+                    echo '<div class="text-sm font-semibold text-green-500">Đang diễn ra</div>';
+                }
+                echo '</td>
+                    
+                <td class="px-1-py-4">';
+                if($tournament['deleted'] == 0){
+                    echo '<a href="detail_tournament.php?id=' . $tournament['id'] . '" class="focus:outline-none text-white bg-blue-500 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-500 dark:focus:ring-blue-500">Chi tiết giải</a>';
+                    echo '<a href="update_tournament.php?id=' . $tournament['id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Cập nhật</a>';
+                    echo '<a href="delete_tournament.php?id=' . $tournament['id'] . '"  onclick="return confirm(\'Bạn có chắc chắn muốn xóa giải này không?\')" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Khoá giải</a>';
+                }
+                else{
+                    echo '<a href="open_tournament.php?id=' . $tournament['id'] . '" class="focus:outline-none text-white bg-blue-500 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-500 dark:focus:ring-blue-500">Mở giải</a>';
+
+                }
+
+                echo '</td>
+                        </tr>';
+            }
+            echo '      </tbody>
+                    </table>
+                </div>';
+        }
+    }
+
+    public function existTournament($name)
+    {
+        $query = "SELECT COUNT(*) FROM tournament WHERE name LIKE :name";
+        $params = array(":name" => '%' . $name . '%');
+        $result = $this->select($query, $params);
+        if ($result[0]['COUNT(*)'] > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function getTypeTour()
+    {
+        $query = "SELECT * FROM type_tour";
+        $result = $this->select($query);
+        return $result;
+    }
+
+    public function historyMatchDetail($id)
+    {
+        $query = 'SELECT DISTINCT m.id, m.name, m.date, d.start, p.name as p_name, t.point,m.winner FROM `match` m
+                        JOIN pitch_detail pd ON m.pitch_detail_id = pd.id
+                        JOIN pitch p ON pd.pitch_id = p.id
+                        JOIN duration d on pd.duration_id = d.id 
+                        JOIN match_detail md ON md.match_id = m.id
+                        JOIN team t ON t.id = md.team_id
+                        WHERE t.tournament_id = :tour_id
+                        group by m.id
+                        ORDER BY m.id ';
+        $params = array(
+            ":tour_id" => $id
+        );
+        $result = $this->select($query, $params);
+        if ($result) {
+            return $result;
+        } else {
+            return false;
+        }
+    }
+
+    public function getTime()
+    {
+        $product = new Product();
+        date_default_timezone_set('Asia/Ho_Chi_Minh');
+        $currentDate = date('Y-m-d');
+
+        if (isset($_GET['pitch'])) {
+
+            $idPitch = $_GET['pitch'];
+            $date = $_GET['date'] ?? $currentDate;
+            $pitchs = $product->getPitchDetailByPitchId($idPitch);
+
+            if ($pitchs) {
+
+                echo '
+                <form action="detail_pitch.php?pitch=' . $idPitch . '&" method="get" class="mt-5 w-full flex justify-center items-center">
+                    <input type="hidden" name="pitch" value="' . $idPitch . '" />
+                    <input type="date" id="dateInput" name="date"  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-80 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" value="' . $date . '" />
+                    <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 ms-2 ">Chọn ngày</button>
+                </form>
+                ';
+                echo '<div class="main flex justify-center items-center border-b w-full mt-5 mb-5 shadow-xl">';
+                echo '<div class="text-center font-bold text-2xl">' . ($pitchs['name']) . ': </div>';
+
+                echo '<form method="POST" action="detail_pitch.php?pitch=' . $pitchs['pitch_id'] . '&date=' . $date . '" id="timeForm">';
+                echo '<div class="grid grid-cols-5 gap-5 mt-5 p-5">';
+                echo '<input type="hidden" name="selected_time" id="selected_time">';
+                echo '<input type="hidden" name="date" id="selected_time">';
+
+
+                //lấy thông tin sân có được đặt chưa
+                $booking_result = $product->existBooking($date);
+
+                //lấy tất cả thời gian hoạt động của sân
+                $duration_result = $product->getAllTimeByPitch($idPitch);
+
+                foreach ($duration_result as $duration) {
+                    $start = new Datetime($duration['start']);
+                    $end = new DateTime($duration['end']);
+                    $start_formatted = $start->format('H:i');
+                    $end_formatted = $end->format('H:i');
+
+                    $pd_id = $duration['pd_id'];
+
+                    $isBooked = false;
+
+                    if ($booking_result) {
+                        foreach ($booking_result as $booking) {
+                            if ($booking['pitch_detail_id'] == $pd_id && $booking['status_id'] == 1) {
+                                $isBooked = true;
+                                break;
+                            }
+                        }
+                    }
+
+
+                    if ($isBooked) {
+                        echo '<div class="text-white bg-red-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';
+                    } else {
+                        echo '<div class="text-white bg-blue-500 font-medium rounded-lg text-sm px-2 py-5 me-2 mb-2">' . $start_formatted . ' - ' . $end_formatted . '</div>';
+                    }
+                }
+            }
+
+            echo '</div>';
+
+            echo '
+                    <div class="flex justify-between">
+                        <div class="flex">
+                            <div class="w-3 h-3 bg-red-500 mt-1.5 me-3 ms-3"></div><p>Sân đã được đặt</p>
+                            <div class="w-3 h-3 bg-blue-500 mt-1.5 me-3 ms-3"></div><p>Sân chưa đặt</p>
+                        </div>
+                    </div>';
+
+            echo '</form>';
+        } else {
+            echo '<p>No pitch found.</p>';
+        }
+    }
+
+    public function getAllRevenue()
+    {
+
+        $date = $_GET['date'] ?? '';
+        $type = $_GET['type'] ?? '';
+        $pitch = $_GET['pitch'] ?? '';
+        $month = $_GET['month'] ?? '';
+
+        $page = isset($_GET['page']) ? $_GET['page'] : 1;
+        $records_per_page = 10;
+        $total_query = "SELECT COUNT(*) as total FROM booking
+        group by date";
+        $total_result = $this->select($total_query);
+        $total_records = $total_result[0]['total'];
+        $total_pages = ceil($total_records / $records_per_page);
+        $offset = ($page - 1) * $records_per_page;
+
+        $query = 'SELECT b.date,t.name as t_name,p.name as p_name,m.name as m_name, SUM(total) as total FROM `booking` b
+		JOIN pitch_detail pd ON pd.id = b.pitch_detail_id
+		JOIN pitch p ON p.id = pd.pitch_id
+ 		JOIN type t ON p.type_id = t.id
+        JOIN manager m ON m.id = p.manager_id 
+   		WHERE b.status_id = 3 and b.date like :date and t.id like :type and m.id = :manager and p.name like :pitch and MONTH(b.date) like :month
+        GROUP BY date
+        ORDER BY b.date DESC
+        ';
+        $params = array(
+            ":date" => '%' . $date . '%',
+            ":type" => '%' . $type . '%',
+            ":manager" => $_SESSION['manager'],
+            ":pitch" => '%' . $pitch . '%',
+            ":month" => '%' . $month . '%'
+        );
+        $result = $this->select($query, $params);
+        $type = $this->getType();
+        $manager = $this->getAllManager();
+        if ($result > 0) {
+            echo '
+                <div class="mb-5">
+                    <h2 class=" text-4xl font-bold text-center">Danh sách doanh thu</h2>
+                </div>
+                <form action="index.php" method="GET" class="flex justify-center items-center mt-5 gap-5">
+                    <input type="hidden" name="url" value="revenue"/>
+                    
+                    <input type="date" name="date" placeholder="Ngày" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-80 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                    <select name="month" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-80 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                        <option value="">Tháng</option>';
+                for ($m = 1; $m <= 12; $m++)  {
+                    echo '<option value="' . $m . '">Tháng ' . $m . '</option>';
+                }
+
+                echo ' </select> 
+                
+                <select name="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-80 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                        <option value="">Loại sân</option>';
+                foreach ($type as $t) {
+                    echo '<option value="' . $t['id'] . '">' . $t['name'] . '</option>';
+                }
+
+                echo' </select>';
+                echo'    <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 ms-2">Tìm kiếm</button>
+                </form>
+                <div class=" overflow-x-auto p-5 mt-5">
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">
+                                STT
+                            </th>
+                            
+                            <th scope="col" class="px-6 py-3">
+                                Tên sân
+                            </th>
+                                <th scope="col" class="px-6 py-3">
+                                    Ngày
+                                </th>
+
+                                <th scope="col" class="px-6 py-3">
+                                Quản lý
+                                </th>
+                                
+                                <th scope="col" class="px-6 py-3">
+                                Loại sân
+                                </th>
+                                
+                                <th scope="col" class="px-6 py-3">
+                                    Doanh thu
+                                </th>
+                        </tr>
+                    </thead>
+                    <tbody>';
+                $index = $offset + 1;
+                foreach ($result as $revenue) {
+                    echo ' <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        ' . $index++ . '
+                        </th>
+                        <td class="px-6 py-4">
+                        ' . $revenue['p_name'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                        ' . $revenue['date'] . '
+                        </td>
+                       
+                        <td class="px-6 py-4">
+                        ' . $revenue['m_name'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                        ' . $revenue['t_name'] . '
+                        </td>
+                        <td class="px-6 py-4 font-bold text-base">
+                        ' . number_format($revenue['total'], 3) . ' VNĐ
+                        </td>
+                        
+                        </tr>
+                        ';
+                }
+                echo '</tbody>
+            </table>';
+            }
+
+            echo '<div class="flex justify-center mt-5">';
+            echo '<nav aria-label="Page navigation example">';
+            echo '<ul class="inline-flex items-center -space-x-px">';
+            if ($page > 1) {
+                echo '<li><a href="index.php?url=revenue&page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
+            }
+
+            for ($i = 1; $i <= $total_pages; $i++) {
+                if ($i == $page) {
+                    echo '<li><a href="index.php?url=revenue&page=' . $i . '" class="px-3 py-2 leading-tight text-blue-600 bg-blue-50 border border-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">' . $i . '</a></li>';
+                } else {
+                    echo '<li><a href="index.php?url=revenue&page=' . $i . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">' . $i . '</a></li>';
+                }
+            }
+
+            if ($page < $total_pages) {
+                echo '<li><a href="index.php?url=revenue&page=' . ($page + 1) . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a></li>';
+            }
+            echo '</ul>';
+            echo '</nav>';
+            echo '</div>';
+        }
+    
+    public function getAllPromotion()
+    {
+
+        $page = isset($_GET['page']) ? $_GET['page'] : 1;
+        $records_per_page = 10;
+        $total_query = "SELECT COUNT(*) as total FROM promotion 
+        where deleted = 0";
+        $total_result = $this->select($total_query);
+        $total_records = $total_result[0]['total'];
+        $total_pages = ceil($total_records / $records_per_page);
+        $offset = ($page - 1) * $records_per_page;
+
+        $query = "SELECT * FROM promotion where deleted = 0
+        LIMIT $offset, $records_per_page";
+        $result = $this->select($query);
+
+        if ($result) {
+            echo '<div class="mb-5">
+                    <h2 class="text-4xl font-bold text-center mb-5">Danh sách khuyến mãi</h2>
+                  </div>
+                    <div class="flex justify-end">
+                        <a href="create_promotion.php" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Tạo khuyến mãi</a>
+                    </div>
+                  <div class="overflow-x-auto p-5 mt-5">
+                    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                          <th scope="col" class="px-6 py-3">
+                            STT
+                          </th>
+                          <th scope="col" class="px-6 py-3">
+                            Tên khuyến mãi
+                          </th>
+                          <th scope="col" class="px-6 py-3">
+                            Hạn sử dụng
+                          </th>
+                          <th scope="col" class="px-6 py-3">
+                            Discount (%)
+                          </th>
+                          <th scope="col" class="px-6 py-3">
+                            Tối đa nhận  
+                          </th>
+                          <th scope="col" class="px-6 py-3">
+                            </th>
+                        </tr>
+                      </thead>
+                      <tbody>';
+            $index = $offset + 1;
+            foreach ($result as $promotion) {
+                echo '<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                          ' . $index++ . '
+                        </th>
+                        <td class="px-6 py-4">
+                          ' . $promotion['name'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                          ' . $promotion['date_exp'] . '
+                        </td>
+                        <td class="px-6 py-4">
+                          ' . $promotion['discount'] . ' %
+                        </td>
+
+                        <td class="px-6 py-4">
+                          ' . $promotion['max_get'] . ' VNĐ
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <a href="update_promotion.php?id=' . $promotion['id'] . '" class="focus:outline-none text-white bg-green-500 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-green-600 dark:hover:bg-green-500 dark:focus:ring-green-500">Cập nhật</a>
+                            <a href="delete_promotion.php?id=' . $promotion['id'] . '"
+                            class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+                            onclick="return confirm(\'Bạn có chắc chắn muốn xóa mã này không?\')">Xoá mã</a>
+                        </td>
+
+                      </tr>';
+            }
+            echo '</tbody>
+                  </table>
+                </div>';
+        }
+
+        echo '<div class="flex justify-center mt-5">';
+        echo '<nav aria-label="Page navigation example">';
+        echo '<ul class="inline-flex items-center -space-x-px">';
+        if ($page > 1) {
+            echo '<li><a href="index.php?url=promotion&page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
+        }
+
+        for ($i = 1; $i <= $total_pages; $i++) {
+            if ($i == $page) {
+                echo '<li><a href="index.php?url=promotion&page=' . $i . '" class="px-3 py-2 leading-tight text-blue-600 bg-blue-50 border border-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">' . $i . '</a></li>';
+            } else {
+                echo '<li><a href="index.php?url=promotion&page=' . $i . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">' . $i . '</a></li>';
+            }
+        }
+
+        if ($page < $total_pages) {
+            echo '<li><a href="index.php?url=promotion&page=' . ($page + 1) . '" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a></li>';
+        }
+        echo '</ul>';
+        echo '</nav>';
+        echo '</div>';
     }
 }
