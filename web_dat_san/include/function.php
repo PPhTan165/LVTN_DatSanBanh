@@ -34,6 +34,11 @@ function isValidPassword($password) {
 	return preg_match($pattern, $password);
 }
 
+function isValidateNumber($number){
+	$pattern = "/^[0-9]+$/";
+	return preg_match($pattern, $number);
+}
+
 function randomString($length) {
 	$characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 	$string = '';

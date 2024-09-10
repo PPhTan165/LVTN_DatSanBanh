@@ -290,11 +290,11 @@ class Admin extends DB
               JOIN pitch_detail pd ON b.pitch_detail_id = pd.id
               JOIN pitch p on pd.pitch_id = p.id
               JOIN duration d on d.id = pd.duration_id
-              WHERE b.name like :name and b.date like :date and p.id like :pitch and b.status_id like :status
+              WHERE b.name like :name and b.phone like :phone and p.id like :pitch and b.status_id like :status
               LIMIT $offset, $records_per_page";
         $params = array(
             ":name" => '%' . $_GET['name'] . '%',
-            ":date" => '%' . $_GET['phone'] . '%',
+            ":phone" => '%' . $_GET['phone'] . '%',
             ":pitch" => '%' . $_GET['pitch'] . '%',
             ":status" => '%' . $_GET['status'] . '%'
         );
@@ -821,7 +821,7 @@ class Admin extends DB
 
     public function existTournament($name)
     {
-        $query = "SELECT COUNT(*) FROM tournament WHERE name LIKE :name";
+        $query = "SELECT COUNT(*) FROM tournament WHERE name LIKE :name and deleted = 0";
         $params = array(":name" => '%' . $name . '%');
         $result = $this->select($query, $params);
         if ($result[0]['COUNT(*)'] > 0) {

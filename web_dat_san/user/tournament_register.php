@@ -24,9 +24,14 @@ session_start();
         
 
             <?php
-            $id = $_GET['id'];
-            $tournament = new Tournament;
-            $tournament->registerTournament($id);
+            if(isset($_SESSION['cus_id'])){
+                $id = $_GET['id'];
+                $tournament = new Tournament;
+                $tournament->registerTournament($id);
+
+            }else{
+                header("location: login.php");
+            }
             ?>
     
 

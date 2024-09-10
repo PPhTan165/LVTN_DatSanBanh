@@ -35,10 +35,10 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
         $selectedTimes = $_GET['time'];
         $idPitch = $_GET['id'];
         $date = $_GET['date'];
-
         $total = 0;
 
         $durations = $pd->getDuration($selectedTimes);
+        $start = $pd->getDurationStartById($selectedTimes);
         $pitch_detail = "SELECT * FROM pitch_detail 
                 JOIN duration ON pitch_detail.duration_id = duration.id
                 JOIN pitch ON pitch_detail.pitch_id = pitch.id
@@ -53,7 +53,7 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
           $pitch_detail_result = $pd->select($pitch_detail, $pitch_detail_arr)[0];
           array_push($arr_pd, $pitch_detail_result);
         }
-        
+
 
         if (!empty($selectedTimes)) {
           $total = $pitch_detail_result['price_per_hour'];
@@ -88,14 +88,11 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
 
                       <div class="mb-5 ">
 
-                        <label for="time-start" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Giờ bắt đầu</label>
-                        <select  id="time-start" name="start_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-64 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">';
-                          foreach ($durations as $value) {
-                            echo '<option value="' . $value['id'] . '">' . $value['start'] . '</option>
-                            ';
-                          }
-                        
-                    echo'  </select>
+                      <div class="mb-5">
+                      <label for="start" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Họ và tên người đặt</label>
+                      <input type="text" id="start" value="' . $start . '"  aria-label="disabled input" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"  disabled />
+                      <input type="hidden" name="start_id" value="' . $selectedTimes . '">
+                      </div>
                                         
                       </div>
 
@@ -103,13 +100,12 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
                       
                         <label for="time-end" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Giờ kết thúc</label>
                         <select id="time-end" name="end_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-64 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">';
-                          foreach ($durations as $value) {
-                            echo '<option value="' . $value['id'] . '">' . $value['end'] . '</option>
+          foreach ($durations as $value) {
+            echo '<option value="' . $value['id'] . '">' . $value['end'] . '</option>
                             ';
-                            
-                          }
-                        
-                    echo'  </select>
+          }
+
+          echo '  </select>
                       </div>
 
                       </div>
@@ -133,50 +129,50 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
       echo  '</div>';
 
       if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
-            $name = $_POST['fname'];
-            $phoneNumber = $_POST['phone-number'];
-            $promotion = $_POST['promotion'];
-            $start_id = $_POST['start_id'];
-            $end_id = $_POST['end_id'];
-
-        $pitch = new Product;
-        $existPromotion = $pitch->existPromotion($promotion);
-         
-        $expirePromotion = $pitch->expirePromotion($promotion);
         
-        if(isValidVietnamPhoneNumber($phoneNumber) == false){
+        $pitch = new Product;
+        $name = $_POST['fname'];
+        $phoneNumber = $_POST['phone-number'];
+        $promotion = $_POST['promotion'];
+        $start_id = $_POST['start_id'];
+        $end_id = $_POST['end_id'];
+        $limit = ((int)$end_id - (int)$start_id) + 1;
+        $existPromotion = $pitch->existPromotion($promotion);
+        $expirePromotion = $pitch->expirePromotion($promotion);
+
+        if (isValidVietnamPhoneNumber($phoneNumber) == false) {
           echo '
           <script>
             alert("Số điện thoại không hợp lệ");
-          </script>';exit();
+          </script>';
+          exit();
         }
-        if($promotion !== ''){
-          if(!$existPromotion){
+        if ($promotion !== '') {
+          if ($existPromotion == false) {
             echo '
             <script>
               alert("Mã khuyến mãi không tồn tại");
-            </script>';exit();
+            </script>';
+            exit();
           }
-          if($expirePromotion){
+          if ($expirePromotion) {
             echo '
             <script>
               alert("Mã khuyến mãi đã hết hạn");
-            </script>';exit();
+            </script>';
+            exit();
           }
-  
         }
-        
-
 
         if ((int)$_POST['start_id'] > (int)$_POST['end_id']) {
           echo '
           <script>
             alert("Thời gian không hợp lệ");
-          </script>';exit();
+          </script>';
+          exit();
         } else {
           if (isset($_POST['submit'])) {
-            
+
 
             //Truy vấn mã khyến mãi
             $promotion_query = "SELECT * from promotion WHERE name = :name";
@@ -184,27 +180,21 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
               ":name" => $promotion
             );
             $promotion_result = $db->select($promotion_query, $promotion_arr);
-
+            var_dump($promotion_result);
 
             //lấy id của customer
-            $customer_query = "SELECT user.id as user_id, user.email, customer.id as cus_id 
-                                FROM user JOIN customer ON user.id = customer.user_id 
-                                WHERE user.email = :email";
-            $customer_arr = array(
-              ":email" => $_SESSION['user']
-            );
-            $customer_result = $db->select($customer_query, $customer_arr)[0];
 
+            $customer_result = (int)$_SESSION['cus_id'];
             //lấy id của pd mà số giờ đã chọn. Sau khi xử lý
             $pd_query = "SELECT pd.id as pd_id, price_per_hour FROM pitch_detail pd
                           join price on  pd.price_id = price.id
                           Where pitch_id = :pitch_id and duration_id between :start_id and :end_id";
             $pd_arr = array(
-              ":pitch_id"=>$idPitch,
-              ":start_id"=>$start_id,
-              ":end_id"=>$end_id,
+              ":pitch_id" => $idPitch,
+              ":start_id" => $start_id,
+              ":end_id" => $end_id,
             );
-            $pd_result = $db->select($pd_query,$pd_arr);
+            $pd_result = $db->select($pd_query, $pd_arr);
 
             //xử lý total 
             $promotion_id = isset($promotion_result[0]['id']) ? $promotion_result[0]['id'] : null;
@@ -212,35 +202,39 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
             $total = 0;
 
             //tổng tiền đặt sân
-            for($k = 0;$k<count($pd_result);$k++){
+
+            for ($k = 0; $k < count($pd_result); $k++) {
               $total += $pd_result[$k]['price_per_hour'];
             }
-
             //Kiểm tra mã khuyến mãi
             if ($promotion_result) {
-              if ($promotion_result['date'] >= $currenDate) {
-                $discount = $total * $promotion_result['discount'] / 100;
-                if ($discount > $promotion_result['max_get']) {
-                  $discount = $promotion_result['max_get'];
+              $pro_result = $promotion_result[0];
+              $date_exp = $pro_result['date_exp'];
+              $discount = 0;
+              $max_get = $pro_result['max_get'] / 1000 ?? 0;
+              if ($pro_result['date_exp'] >= $currenDate) {
+                $discount = $total * $pro_result['discount'] / 100;
+                if ($discount > $max_get) {
+                  $discount = $max_get;
                   $total = $total - $discount;
                 } else {
                   $total = $total - $discount;
                 }
-              } 
+              }
             }
 
             //Kiểm tra thông tin đặt sân đã hợp lệ chưa
             if (isValidVietnamPhoneNumber($phoneNumber) && isset($name) && isset($phoneNumber)) {
               $booking_query = "INSERT INTO booking(name,phone, date, date_created, total, cus_id, pitch_detail_id, status_id) 
                               VALUES (:name,:phone,:date,:date_created, :total, :cus_id, :pitch_detail_id, 1)";
-              for($j = 0; $j < count($pd_result);$j++){
+              for ($j = 0; $j < count($pd_result); $j++) {
                 $booking_arr = array(
                   ":name" => $name,
                   ":phone" => $phoneNumber,
                   ":date" => $date,
                   ":date_created" => $timeCreated,
                   ":total" => $total,
-                  ":cus_id" => $customer_result['cus_id'],
+                  ":cus_id" => $customer_result,
                   ":pitch_detail_id" => $pd_result[$j]['pd_id'],
                 );
 
@@ -249,24 +243,25 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
               if ($booking_insert) {
                 echo '
                 <script>
-                  window.location.href="invoice.php"
+                  window.location.href="invoice.php?limit=' . $limit . '"
                 </script>
               ';
-
               } else {
                 echo '
                 <script>
                   alert("Đặt sân thất bại");
                 </script>
-              ';exit();
+              ';
+                exit();
               }
             } else {
               // Số điện thoại không hợp lệ, thông báo lỗi
-             echo '
+              echo '
               <script>
                 alert("Số điện thoại không hợp lệ");
               </script>
-            ';exit();
+            ';
+              exit();
             }
           }
         }

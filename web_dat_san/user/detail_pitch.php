@@ -6,7 +6,7 @@ session_start();
 
 // Kiểm tra nếu form được submit
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if(isset($_SESSION['user'])){
+    if(isset($_SESSION['email'])){
 
         if (isset($_POST['selected_time']) && !empty($_POST['selected_time'])) {
             // Chuyển hướng đến trang booking.php với thông tin cần thiết

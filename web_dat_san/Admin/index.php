@@ -4,10 +4,7 @@ require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 session_start();
 
-if(!isset($_SESSION['role'])){
-    header("Location: ../user/login");
-    exit();
-}
+
 ?>
 
 <!DOCTYPE html>

@@ -2,6 +2,7 @@
 session_start();
 require "../config/config.php";
 require ROOT . "/include/function.php";
+require "../mail/index.php";
 spl_autoload_register("loadClass");
 
 $errorMessage = '';
@@ -10,8 +11,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['submit'])) {
         $db = new DB;
         $user_db = new User;
+        $mail = new Mailer;
         $email = $_POST['email'];
-        $password = $_POST['password'];
 
         $sql = 'SELECT * FROM user WHERE email = :email';
         $arr = array(":email" => $email);
@@ -21,29 +22,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if (count($userList) > 0) {
             $user = $userList[0];
-            $md5 = md5($password);
+            $code = substr(rand(0,999999),0,6);
+            $title = "Mã xác nhận";
+            $content = 'Mã xác nhận của bạn là: <span class="text-green-500 font-bold">'.$code.'</span>';
+            $mail->sendMail($title, $content, $email);
+           
+            $_SESSION['email'] = $email;
+            $_SESSION['code'] = $code;
 
-        
-            if ($md5 == $user['password']) {
-                $_SESSION["user"] = $email;
-                $_SESSION["role"] = $user["role_id"];
-                switch ($user['role_id']) {
-                    case '1':
-                        header("location: ../admin/index.php");
-                        exit();
-                    case '2':
-                        header("location: ../manager/index.php");
-                        exit();
-                    case '3':
-                        $_SESSION['cus_id'] = $user_db->getSessionCusId($email);
-                        header("location: index.php");
-                        exit();
-                    default:
-                        break;
-                }
-            } else {
-                $errorMessage = "Password is wrong";
-            }
+            header("location: vertification.php");
+           
         } else {
             $errorMessage = "Email does not exist";
         }
@@ -88,7 +76,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="w-62 me-5">
                 <img src="https://congtrinhthep.vn/wp-content/uploads/2017/12/cong-trinh-dan-khong-gian-gioi-san-bong-moi-cua-tottenham-hotspur.jpg" alt="img" height="600px" class="rounded-xl">
             </div>
-        <form class="w-96" action="login.php" method="POST">
+        <form class="w-96" action="#" method="POST">
             <h2 class="text-center text-2xl font-bold whitespace-normal mt-3 ">QUÊN MẬT KHẨU</h2>
             <div class="mb-5">
                 <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>

@@ -70,32 +70,46 @@ class User extends DB
         }
     }
 
-    public function getInvoice()
+    public function updatePassword($email, $newPassword)
     {
-        $cus_id = $_SESSION['cus_id'];
-        $query = "SELECT b1.id, b1.name, b1.phone, b1.date, p.name AS p_name, b1.total, d.start, d.end, b1.status_id, b1.promotion_id, pr.price_per_hour
-                    FROM booking b1
-                    JOIN pitch_detail pd ON pd.id = b1.pitch_detail_id
-                    JOIN pitch p ON pd.pitch_id = p.id
-                    JOIN price pr ON pd.price_id = pr.id
-                    JOIN duration d ON pd.duration_id = d.id
-                    WHERE b1.cus_id = 1 AND b1.date_created IN (
-                        SELECT date_created
-                        FROM booking
-                        WHERE cus_id = :cus_id
-                        GROUP BY date_created
-                        HAVING COUNT(*) > 1
-                        )
-                    ";
+        $query = "UPDATE user SET password = :newPassword WHERE email = :email";
         $params = array(
-            ":cus_id" => $cus_id
+            ":newPassword" => $newPassword,
+            ":email" => $email
+        );
+        $result = $this->update($query, $params);
+        return $result;
+    }
+
+    public function getInvoice()
+    {   
+        $cus_id = $_SESSION['cus_id'];
+        $limit = (int)($_GET['limit']);
+
+        $query = "SELECT b1.id, b1.name, b1.phone, b1.date, p.name AS p_name,b1.date_created, b1.total, d.start, d.end, b1.status_id, b1.promotion_id, pr.price_per_hour,b1.status_id
+        FROM booking b1
+        JOIN pitch_detail pd ON pd.id = b1.pitch_detail_id
+        JOIN pitch p ON pd.pitch_id = p.id
+        JOIN price pr ON pd.price_id = pr.id
+        JOIN duration d ON pd.duration_id = d.id
+        WHERE b1.cus_id = :cus_id AND b1.date_created IN (
+            SELECT date_created
+            FROM booking
+            WHERE cus_id = :cus_id
+            GROUP BY date_created
+            HAVING COUNT(*) > 1
+            )
+        ORDER BY b1.date_created DESC
+        LIMIT $limit";
+        $params = array(
+            ":cus_id" => $cus_id,
         );
         $result = $this->select($query, $params);
-        if ($result == null) {
-            echo '<script>alert("Không tìm thấy thông tin")
-            window.location.href="history.php"</script>';
-        } else {
+        
+        if ($result) {
             return $result;
+        } else {
+             return false;
         }
     }
 
@@ -130,29 +144,25 @@ class User extends DB
                 $phone = $_POST['phonenumber'];
                 $password = $_POST['password'];
                 $cfm_password = $_POST['cfmpassword'];
-
+                $error = array();
                 //check phone
                 if (isValidVietnamPhoneNumber($phone) == false) {
-                    echo "<script>alert('Số điện thoại không hợp lệ')</script>";
-                    exit();
+                    $error['phone'] = "Số điện thoại không hợp lệ";
                 }
 
                 //check khoảng trắng
                 if (strpos($password, ' ') !== false) {
-                    echo "<script>alert('Mật khẩu không được chứa khoảng trắng')</script>";
-                    exit();
+                    $error['space'] = "Mật khẩu không được chứa khoảng trắng";
                 }
 
                 //check password
                 if (isValidPassword($password) == false) {
-                    echo "<script>alert('Mật khẩu phải chứa ít nhất 6 ký tự, 1 chữ hoa, 1 chữ thường và 1 số')</script>";
-                    exit();
+                    $error['validate'] = "Mật khẩu phải chứa ít nhất 6 ký tự, 1 chữ hoa, 1 chữ thường và 1 số";
                 }
 
                 //check password and confirm password
                 if ($password != $cfm_password) {
-                    echo "<script>alert('Mật khẩu và xác nhận mật khẩu không trùng khớp')</script>";
-                    exit();
+                    $error['confirm'] = "Mật khẩu và xác nhận mật khẩu không trùng khớp";
                 }
 
                 $password_encrypt = md5($password);
@@ -210,16 +220,27 @@ class User extends DB
 
     public function historyBooked()
     {   
+        $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
         $page = isset($_GET['page']) ? $_GET['page'] : 1; 
         $records_per_page = 10;
         $offset = ($page - 1) * $records_per_page;
-        
         $currentDate = date("Y-m-d");
         $current_format = DateTime::createFromFormat('Y-m-d', $currentDate);
+    
+        $date_filter = isset($_GET['date']) ? $_GET['date'] : '';
 
-        $total_query = "SELECT COUNT(*) as total FROM booking";
-        $total_result = $this->select($total_query);
-        $total_records = $total_result[0]['total'];
+        $total_query = "SELECT COUNT(*) as total FROM booking b
+        JOIN pitch_detail pd ON pd.id = b.pitch_detail_id
+        JOIN pitch p ON pd.pitch_id = p.id
+        JOIN duration d ON pd.duration_id = d.id
+        WHERE b.cus_id = :cus_id and b.status_id like :status and b.date like :date ";
+         $params_total = array(
+            ":cus_id" => $_SESSION['cus_id'],
+            ":status" => '%' . $status_filter. '%',
+            ":date" => '%' . $date_filter . '%'
+            );
+        $total_result = $this->select($total_query,$params_total);
+        $total_records = $total_result[0]['total']??0;
         $total_pages = ceil($total_records / $records_per_page);
 
 
@@ -228,15 +249,40 @@ class User extends DB
                     JOIN pitch_detail pd ON pd.id = b.pitch_detail_id
                     JOIN pitch p ON pd.pitch_id = p.id
                     JOIN duration d ON pd.duration_id = d.id
-                    WHERE b.cus_id = :cus_id
+                    WHERE b.cus_id = :cus_id and b.status_id like :status and b.date like :date 
                     order by b.date desc
                     limit $offset, $records_per_page";
 
-        $params = array(":cus_id" => $_SESSION['cus_id']);
+        $params = array(
+            ":cus_id" => $_SESSION['cus_id'],
+            ":status" => '%' . $status_filter. '%',
+            ":date" => '%' . $date_filter . '%'
+            );
         $histories = $this->select($query, $params);
+            echo'<form action="history.php?page='.$page.'" method="get" class="flex justify-center items-center gap-5 mb-5 mt-5 w-full">
+                    <div class="mb-5">
+                        <label for="date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ngày đặt sân</label>
+                        <input type="date" id="date" name="date" value="'.$date_filter.'" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                    </div>
+                    <div class= "mb-5">
+                    <label for="status" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Trạng thái </label>
+                    <select id="stauts" name="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                      <option value="">Tất cả</option>
+                      <option value="1">Chưa thanh toán</option>
+                      <option value="2">Huỷ sân</option>
+                      <option value="3">Đã thanh toán</option>
+                     
+                    </select>
+                    </div>
+                    <div>
+                        
+                        <button type="submit" class="mt-5 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Tìm kiếm</button>
+                    </div>
+                </form>';
         if ($histories == null) {
             echo '<div class="text-center mt-5">
             <h2 class="text-2xl font-bold">Bạn chưa đặt sân nào</h2>';
+
         } else {
 
             $index = $offset + 1;
@@ -327,8 +373,8 @@ class User extends DB
 
                                 echo '
                                 <a href="detail_booked.php?id=' . $history['id'] . '" class="focus:outline-none text-white bg-blue-500 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-500 dark:focus:ring-blue-500">Chi tiết</a>
-                                <a href="cancel_booked.php?id=' . $history['id'] . '" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Cancel</a> ';
-                            }
+                                <a href="cancel_booked.php?id=' . $history['id'] . '" onclick="return confirm(\'Bạn có chắc muốn huỷ?\');" class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Cancel</a> ';                           
+                             }
                         } else {
 
                             echo '
@@ -341,15 +387,11 @@ class User extends DB
             }
             echo '</tbody>
             </table>';
-           
-            echo '</div>';
-
-            //pagination
             echo '<div class="flex justify-center mt-5">';
             echo '<nav aria-label="Page navigation example">';
             echo '<ul class="inline-flex items-center -space-x-px">';
             if ($page > 1) {
-                echo '<li><a href="history.php&page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
+                echo '<li><a href="history.php?page=' . ($page - 1) . '" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a></li>';
             }
     
             for ($i = 1; $i <= $total_pages; $i++) {
@@ -366,6 +408,10 @@ class User extends DB
             echo '</ul>';
             echo '</nav>';
             echo '</div>';
+            echo '</div>';
+
+            //pagination
+            
         }
     }
 
@@ -477,6 +523,31 @@ class User extends DB
                     ';
 
             echo '</div>';
+        }
+    }
+
+    public function getInfoUserById($id, $email){
+        $query = "SELECT user.id, user.deleted, user.email, customer.name as cus_name,phone,team_id FROM user
+        JOIN customer ON user.id = customer.user_id
+         WHERE customer.id = :id and user.email = :email";
+        $params = array(":id" => $id, ":email" => $email);
+        $result = $this->select($query, $params);
+        if($result){
+
+            return $result[0];
+        }else{
+            echo '<p class="text-lg font-bold text-red-500">Không tìm thấy thông tin người dùng</p>';
+        }
+    }
+
+    public function getTeamById($id){
+        $query = "SELECT * FROM team WHERE id = :id";
+        $params = array(":id" => $id);
+        $result = $this->select($query, $params);
+        if($result){
+            return $result[0];
+        }else{
+            false;
         }
     }
 }

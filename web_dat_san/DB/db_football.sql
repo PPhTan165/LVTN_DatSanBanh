@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1:3306
--- Thời gian đã tạo: Th8 11, 2024 lúc 04:57 PM
+-- Thời gian đã tạo: Th8 13, 2024 lúc 10:31 AM
 -- Phiên bản máy phục vụ: 5.7.31
 -- Phiên bản PHP: 7.3.21
 
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS `booking` (
   KEY `booking_pitch_detail_id_fk` (`pitch_detail_id`),
   KEY `booking_promotion_id_fk` (`promotion_id`),
   KEY `booking_status_id_fk` (`status_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `booking`
@@ -79,7 +79,19 @@ INSERT INTO `booking` (`id`, `name`, `phone`, `date`, `date_created`, `total`, `
 (26, 'Phan Phúc Tân', '0707719300', '2024-08-05', '2024-08-06 03:08:19', '400.000', 1, 109, NULL, 1),
 (27, 'Phan Phúc Tân', '0707719300', '2024-08-05', '2024-08-06 03:08:19', '400.000', 1, 110, NULL, 1),
 (28, 'Phan Phúc Tân', '0707719300', '2024-08-05', '2024-08-06 03:08:19', '400.000', 1, 111, NULL, 1),
-(29, 'Phan Phúc Tân', '0707719300', '2024-08-05', '2024-08-06 03:08:19', '400.000', 1, 112, NULL, 1);
+(29, 'Phan Phúc Tân', '0707719300', '2024-08-05', '2024-08-06 03:08:19', '400.000', 1, 112, NULL, 1),
+(30, 'Phan Phúc Tân', '0707719300', '2024-08-12', '2024-08-12 14:27:56', '350.000', 1, 30, NULL, 1),
+(31, 'Phan Phúc Tân', '0707719300', '2024-08-12', '2024-08-12 14:27:56', '350.000', 1, 31, NULL, 1),
+(32, 'Phan Phúc Tân', '0707719300', '2024-08-12', '2024-08-12 14:31:36', '350.000', 1, 30, NULL, 1),
+(33, 'Phan Phúc Tân', '0707719300', '2024-08-12', '2024-08-12 14:31:36', '350.000', 1, 31, NULL, 1),
+(34, 'Phan Phúc Tân', '0707719300', '2024-08-12', '2024-08-12 14:45:12', '350.000', 1, 30, NULL, 3),
+(35, 'Phan Phúc Tân', '0707719300', '2024-08-12', '2024-08-12 14:45:12', '350.000', 1, 31, NULL, 3),
+(36, 'Phan Phúc Tân', '0707719300', '2024-08-13', '2024-08-13 13:59:07', '200.000', 1, 69, NULL, 1),
+(37, 'Phan Phúc Tân', '0707719300', '2024-08-13', '2024-08-13 14:01:14', '200.000', 1, 36, NULL, 1),
+(38, 'Phan Phúc Tân', '0707719300', '2024-08-13', '2024-08-13 14:02:06', '200.000', 1, 36, NULL, 1),
+(39, 'Phan Phúc Tân', '0707719300', '2024-08-13', '2024-08-13 14:02:39', '200.000', 1, 36, NULL, 1),
+(40, 'Phan Phúc Tân', '0707719300', '2024-08-13', '2024-08-13 14:03:30', '200.000', 1, 36, NULL, 1),
+(41, 'Phan Phúc Tân', '0707719300', '2024-08-13', '2024-08-13 14:03:35', '200.000', 1, 36, NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -104,7 +116,7 @@ CREATE TABLE IF NOT EXISTS `customer` (
 --
 
 INSERT INTO `customer` (`id`, `name`, `phone`, `team_id`, `user_id`) VALUES
-(1, 'Tân', '0774883391', NULL, 5),
+(1, 'Phan Khánh Mao', '0707719300', 15, 5),
 (2, 'Phan Hieu Lam', '0987654321', NULL, 6),
 (3, 'a', '0707719300', 6, 8),
 (4, 'a', '0707719300', 7, 9),
@@ -351,9 +363,9 @@ CREATE TABLE IF NOT EXISTS `pitch` (
 
 INSERT INTO `pitch` (`id`, `name`, `deleted`, `description`, `manager_id`, `type_id`) VALUES
 (1, 'Sân đá giải  11 ', 1, 'Giải bóng đá thường niên STU 24-25', 2, 3),
-(2, 'sân số 1', 0, '', 1, 1),
-(3, 'sân số Hai', 0, '', 1, 1),
-(4, 'sân số 3', 0, '', 4, 1),
+(2, 'Sân số 1', 0, '', 1, 1),
+(3, 'Sân số 2', 0, '', 1, 1),
+(4, 'Sân số 3', 0, '', 4, 1),
 (6, 'Sân số 5', 0, '', 3, 2),
 (7, 'Sân số 6', 0, '', 1, 1);
 
@@ -613,7 +625,7 @@ CREATE TABLE IF NOT EXISTS `team` (
   `tournament_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `team_tournament_id_fk` (`tournament_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `team`
@@ -633,7 +645,8 @@ INSERT INTO `team` (`id`, `name`, `deleted`, `info_team`, `group`, `isWinner`, `
 (11, 'D21_TH07', 0, NULL, 'A', 0, 2, 4),
 (12, 'D21_TH08', 0, NULL, 'B', 0, 0, 4),
 (13, 'D21_TH09', 0, NULL, 'B', 0, 0, 4),
-(14, 'D21_TH10', 0, NULL, 'B', 0, 0, 4);
+(14, 'D21_TH10', 0, NULL, 'B', 0, 0, 4),
+(15, 'D20_TH11', 0, 'Tiến,Tân,Hảo,Lâm,', NULL, 0, 0, 5);
 
 -- --------------------------------------------------------
 
@@ -652,7 +665,7 @@ CREATE TABLE IF NOT EXISTS `tournament` (
   PRIMARY KEY (`id`),
   KEY `tournament_manager_id_fk` (`manager_id`),
   KEY `tournament_type_tour_id` (`type_tour_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `tournament`
@@ -662,7 +675,8 @@ INSERT INTO `tournament` (`id`, `name`, `deleted`, `start_day`, `manager_id`, `t
 (1, 'Giải sinh viên CNTT 24-25', 1, '2024-08-01', 2, 1),
 (2, 'EPL', 0, '2024-07-23', 1, 2),
 (3, 'LALIGA', 1, '2024-06-30', 1, 2),
-(4, 'V League', 0, '2024-08-01', 3, 2);
+(4, 'V League', 0, '2024-08-01', 3, 2),
+(5, 'SERIES A', 0, '2024-08-31', 4, 1);
 
 -- --------------------------------------------------------
 

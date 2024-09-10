@@ -2,6 +2,7 @@
 session_start();
 require "../config/config.php";
 require ROOT . "/include/function.php";
+require "../mail/index.php";
 spl_autoload_register("loadClass");
 ?>
 <!DOCTYPE html>
@@ -18,8 +19,10 @@ spl_autoload_register("loadClass");
 <body class="flex justify-center items-center mt-10 p-8 bg-gray-800">
 
     <?php
+    
     $user = new User;
     $user->registerUser();
+
     ?>
 
         <div class="flex justify-center items-center bg-white rounded-xl shadow-xl p-8 ">
@@ -35,19 +38,40 @@ spl_autoload_register("loadClass");
                 <div class="mb-5">
                     <label for="phonenumber" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">SDT</label>
                     <input type="text" id="phonenumber" name="phonenumber" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="09xxxxxxxx" maxlength="10" required />
+                    
+                        <?php if(isset($errorMessage['phonenumber'])): ?>
+                        <p class="text-red-500 text-sm"><?php echo $errorMessage['phonenumber']; ?></p>
+                        <?php endif;  ?>
+
                 </div>
                 <div class="mb-5">
                     <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>
                     <input type="email" id="email" name="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="example@gmail.com" required />
+                
                 </div>
                 <div class="mb-5">
                     <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
                     <input type="password" id="password" name="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required placeholder="Có ít nhất 6 ký tự trong đó phải có 1 chữ in hoa 1 số" />
+                        
+                        <?php if(isset($errorMessage['password'])): ?>
+                        <p class="text-red-500 text-sm"><?php echo $errorMessage['password']; ?></p>
+                        <?php endif;  ?>
+
+                        <?php if(isset($errorMessage['space'])): ?>
+                        <p class="text-red-500 text-sm"><?php echo $errorMessage['space']; ?></p>
+                        <?php endif;  ?>
+
                 </div>
                 <div class="mb-5">
                     <label for="cfmpassword" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirm Password</label>
                     <input type="password" id="cfmpassword" name="cfmpassword" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required />
+                    
+                    <?php if(isset($errorMessage['confirm'])): ?>
+                    <p class="text-red-500 text-sm"><?php echo $errorMessage['confirm']; ?></p>
+                    <?php endif;  ?>
+
                 </div>
+
 
                 <div class="mb-5 flex justify-between">
                     <a href="login.php" class="py-2.5">Đã có tài khoản</a>
@@ -57,6 +81,6 @@ spl_autoload_register("loadClass");
         </div>
 
 </body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
 
 </html>

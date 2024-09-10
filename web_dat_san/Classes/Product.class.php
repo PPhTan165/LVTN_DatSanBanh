@@ -22,16 +22,26 @@ class Product extends Db
         return $result;
     }
 
+    public function getDurationStartById($id){
+        $query = "select start from duration where duration.id = :duration_id";
+        $params = array(":duration_id" => $id);
+        $result = $this->select($query, $params);
+        if($result){
+            return $result[0]['start'];
+        }
+        return false;
+    }
+
     public function existPromotion($name)
     {
         $query = "SELECT COUNT(*) FROM promotion WHERE name = :name";
         $params = array(
-            ":name" => "%" . $name . "%"
+            ":name" => $name 
         );
         $result = $this->select($query, $params);
 
         if ($result[0]['COUNT(*)'] > 0) {
-            return $result;
+            return true;
         }
         return false;
     }
@@ -127,7 +137,7 @@ class Product extends Db
         $db = new DB;
         $query = "SELECT pitch.id as pitchid, type.id as typeid ,pitch.name as pitchname, description, type.name as typename FROM pitch JOIN type ON pitch.type_id = type.id WHERE deleted=0";
         $pitchs = $db->select($query);
-        echo '<div class="grid grid-cols-4 gap-5 p-5 mb-5 py-6 bg-gray-700 ">';
+        echo '<div class="grid grid-cols-4 gap-5 p-5 mb-5 py-6 bg-blue-900 ">';
         $currentDate = date("Y-m-d");
 
         foreach ($pitchs as $pitch) {
@@ -168,14 +178,18 @@ class Product extends Db
         </form>';
         }
         if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['type'])) {
-            $type_query = "SELECT pitch.id as pitchid, type.id as typeid ,pitch.name as pitchname, description, type.name as typename FROM pitch JOIN type ON pitch.type_id = type.id WHERE type.name LIKE :type";
+            $type_query = "SELECT pitch.id as pitchid, type.id as typeid ,pitch.name as pitchname, description, type.name as typename 
+            FROM pitch 
+            JOIN type ON pitch.type_id = type.id 
+            WHERE type.name LIKE :type and deleted= :deleted";
             $type_arr = array(
-                ":type" => '%' . $type_get . '%'
+                ":type" => '%' . $type_get . '%',
+                ":deleted" => 0
             );
             $pitchs = $db->select($type_query, $type_arr);
 
             if (isset($pitchs)) {
-                echo '<div class="grid grid-cols-4 gap-5 p-5 py-6 bg-gray-700 ">';
+                echo '<div class="grid grid-cols-4 gap-5 p-5 py-6 bg-blue-900 ">';
                 $currentDate = date("Y-m-d");
                 foreach ($pitchs as $pitch) {
                     $name = $pitch['pitchname'];
@@ -187,7 +201,7 @@ class Product extends Db
                              <img class="object-cover w-full rounded-t-lg h-96 md:h-auto md:w-48 md:rounded-none md:rounded-s-lg" src="https://www.ledsaigon.net/upload/image/S%C3%82N%20BANH/z2362051233871_e70182af77a3215e0d8a3186d21ba199.jpg" alt="">
                              <div class="flex flex-col justify-between p-4 leading-normal">
                                  <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Tên sân: ' . $name . '</h5>
-                                 <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">Loại sân: ' . $type_name . '</p>
+                                 <p class="mb-3 font-semibold text-gray-700 dark:text-gray-400 text-lg">Loại sân: ' . $type_name . '</p>
                                  <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">Mô tả: ' . $des . '</p>
                              </div>
                          </a>';

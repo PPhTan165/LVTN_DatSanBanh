@@ -19,10 +19,9 @@ session_start();
 <body>
     <?php require_once("../include/header.php") ?>
     <div class="main">
-        <h2 class="text-3xl font-bold text-center mt-5 mb-5 ">Lịch sử đặt sân</h2>
+        <h2 class="text-3xl font-bold text-center mt-5  ">Lịch sử đặt sân</h2>
 
 
-        <div class="relative overflow-x-auto shadow-md sm:rounded-lg h-full mb-10 p-8">
             
         <?php
             
@@ -32,7 +31,6 @@ session_start();
         ?>
             
             
-        </div>
     </div>
     <?php require_once("../include/footer.php") ?>
 </body>

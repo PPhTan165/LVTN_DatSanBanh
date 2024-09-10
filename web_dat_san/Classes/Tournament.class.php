@@ -211,7 +211,7 @@ class tournament extends DB
 
     public function getAllTournament()
     {
-        $query = "SELECT * FROM tournament";
+        $query = "SELECT * FROM tournament where deleted = 0";
         $result = $this->select($query);
 
         $currentDate = new datetime(date("Y-m-d"));
@@ -257,7 +257,7 @@ class tournament extends DB
                             </a>
                             </div>';
                         }else{
-                            echo'<a href="tournament_detail.php?id=' . $tournament['id'] . '" class="me-5 inline-flex items-center px-3 py-3 text-sm font-medium text-center text-blue-500 rounded-lg border hover:border-blue-700 focus:ring-4 focus:outline-none dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                            echo'<a href="tournament_detail.php?id=' . $tournament['id'] . '" class="me-5 inline-flex items-center justify-center w-full px-3 py-3 text-sm font-medium text-center text-blue-500 rounded-lg border hover:border-blue-700 focus:ring-4 focus:outline-none dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                             Xem kết quả
                         </a>';
                         }
@@ -296,7 +296,10 @@ class tournament extends DB
                 $name = $_POST['team'];
                 $info = $_POST['message'];
                 $existTeam = $this->existTeam($name,$id_tournament);
-                
+                if($info == ''){
+                    echo "<script>alert('Vui lòng nhập thông tin đội.')</script>";
+                    exit();
+                }
                 if ($existTeam) {
 
                     echo "<script>alert('Tên đội đã tồn tại trong giải này.')</script>";
@@ -320,7 +323,7 @@ class tournament extends DB
                         );
                         $team_result = $this->update($update, $cus_params);
                         if ($team_result) {
-
+                                $_SESSION['team_id'] = $team_id;
                             echo "<script>alert('Đăng ký thành công')
                                 window.location.href='tournament_detail.php?id=$id_tournament'
                                 </script>";
@@ -336,20 +339,19 @@ class tournament extends DB
 
         echo ' <div class="flex justify-center items-center h-full mt-5">
         <form class="w-96 mx-auto bg-white p-5 rounded-xl shadow-xl" action="tournament_register.php?id='.$id_tournament.'" method="POST">
-            <h2 class="text-center text-2xl font-bold whitespace-normal mb-5 ">Đơn đăng ký</h2>
 
             <div class="mb-5">
                 <label for="team" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tên đội</label>
-                <input type="text" name="team" id="team" placeholder="Nguyễn Văn A" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required />
+                <input type="text" name="team" id="team" placeholder="Nhập tên đội" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required />
             </div>
             <div class="mb-5">
                 <label for="message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Thông tin đội</label>
-                <textarea id="message" rows="10" name="message" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tên cầu thủ - số áo"></textarea>
+                <textarea id="message" rows="10" name="message" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tên cầu thủ"></textarea>
             </div>            
 
             <div class="mb-5">
                 <input type="checkbox" id="agree" name="agree" class="mr-2" required />
-                <span class="text-sm text-blue-500"><a href="regulations.php" title="Đọc điều lệ chi tiết">Tôi đồng ý với điều lệ</a></span>
+                <span class="text-sm text-blue-500"><a href="regulations.php?id='.$id_tournament.'" title="Đọc điều lệ chi tiết">Tôi đồng ý với điều lệ</a></span>
             </div>
 
             <div class="mb-5">

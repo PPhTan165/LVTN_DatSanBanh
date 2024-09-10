@@ -1,9 +1,9 @@
 function handleLogin(){
-    window.location.href="login.php";
+    window.location.href="../login/login.php";
 }
 
 function handleLoginAdmin(){
-    window.location.href="./user/login.php";
+    window.location.href="../login/login.php";
 }
 
 document.addEventListener("DOMContentLoaded", function() {

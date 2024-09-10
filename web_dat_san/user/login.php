@@ -5,7 +5,7 @@ require ROOT . "/include/function.php";
 spl_autoload_register("loadClass");
 
 $errorMessage = '';
-
+unset($_SESSION['code']);
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['submit'])) {
         $db = new DB;
@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         
             if ($md5 == $user['password']) {
-                $_SESSION["user"] = $email;
+                $_SESSION["email"] = $email;
                 $_SESSION["role"] = $user["role_id"];
                 switch ($user['role_id']) {
                     case '1':
@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         exit();
                     case '3':
                         $_SESSION['cus_id'] = $user_db->getSessionCusId($email);
-                        header("location: index.php");
+                        header("location:../user/index.php");
                         exit();
                     default:
                         break;
@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <body class="flex justify-center items-center mt-10 p-8 bg-gray-800">
     <?php if ($errorMessage) : ?>
-        <div id="errorModal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center  overflow-y-auto">
+        <div id="errorModal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
             <div class="relative w-full max-w-md p-4">
                 <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
                     <div class="p-4">
